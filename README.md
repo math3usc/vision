@@ -1,9 +1,6 @@
 # vision
 Sistema de visão do lambe sujo
 
-# git-caboclinhos
-Teste do desenvolvimento compartilhado.
-
 (Abra o terminal)
 
 1 - Selecione um diretório
