@@ -72,8 +72,6 @@ Strategy::Strategy()
    flaag=1;
 
    contadorr = 0;
-   gole = true;
-   cont_gol = 0;
    flag_1 = 0;
    flag_2 = 0;
    flag_3 = 0;
@@ -88,10 +86,6 @@ Strategy::Strategy()
    Adicionar_goleiro("Calibra-",&Strategy::samuel);
    Adicionar_atacante("Calibra-",&Strategy::samuel);
    Adicionar_atacante("CR7",&Strategy::vitoria);
-   Adicionar_atacante("1/CR7",&Strategy::cr7_contrario);
-   Adicionar_atacante("Penalty",&Strategy::penalty_des);
-   Adicionar_atacante("P_cima",&Strategy::p_cima);
-   Adicionar_atacante("Fire!",&Strategy::pegandofogo);
    Adicionar_zagueiro("Calibra+",&Strategy::raphael);
    Adicionar_goleiro("Calibra+",&Strategy::raphael);
    Adicionar_atacante("Calibra+",&Strategy::raphael);
@@ -310,18 +304,8 @@ comandos Strategy::Paulo_Victor(Robot rb)
         double ang = rb.get_orientation();
         double p1 = distancia(rb,campo->fleftx,campo->gboty);
         double p2 = distancia(rb,campo->fleftx,campo->gtopy);
-        if (gole && ((ang>-10 && ang<10) ||(ang>170)||(ang<-170)) && (p1 < 2*campo->diametro_robo || p2 < 2*campo->diametro_robo))
-        {
-            W = 1;
-            gole = false;
-            cont_gol = 0;
-        }
-
-        if(cont_gol > 100)
-        {
-            gole = true;
-        }
-        cont_gol++;
+        //if (((ang>-10 && ang<10) ||(ang>170)||(ang<-170)) && (p1 < 2*campo->diametro_robo || p2 < 2*campo->diametro_robo))
+          //  W = 1;
 
         if(distancia(rb,bola.x,bola.y) < campo->diametro_robo && bola.y < rb.get_center_robot().y && bola.x > rb.get_center_robot().x - campo->tam_robo)
             W = -1;
@@ -330,7 +314,7 @@ comandos Strategy::Paulo_Victor(Robot rb)
 
         V = 2*V;
         W = 1.05*W;
-        //cout << "" << rb.get_orientation() << endl;;
+        cout << "" << rb.get_orientation() << endl;;
         comandos resultado;
         resultado = gera_comandos(rb, V, W);
         return resultado;
@@ -782,119 +766,6 @@ comandos Strategy::Garrincha_contrario(Robot rb)
         return(resultado);
 }
 
-comandos Strategy::cr7_contrario(Robot rb)
-{
-    comandos resultado;
-        ang_err angulo, angulo2;
-
-        angulo = olhar(rb, bola.x, bola.y);
-
-        W = controle_angular_Kamarry(rb, bola.x, bola.y);
-        V =  controle_linear_Kamarry(rb, bola.x, bola.y);
-
-        if(bola.x < rb.get_center_robot().x + 20 && (distancia(rb, bola.x, bola.y) < 35) && flag_fire == 0)
-        {
-            if(bola.y > rb.get_center_robot().y)
-                W = -1;
-            else
-                W = 1;
-            if(bola.x > campo->area_right)
-            {
-                if(bola.y > campo->gtopy)
-                    W = 1;
-                if(bola.y < campo->gboty)
-                    W = -1;
-            }
-        }
-
-        // se o robô estiver perto da bola e apontado para ela
-         if ((distancia(rb, bola.x, bola.y) < 35) & (fabs(angulo.fi) < 45))
-        {
-            V = V/(2*fabs(V)); //assume metade da velocidade máxima na direçao da bola
-            W = -(angulo.fi/fabs(angulo.fi));
-            if(bola.x < rb.get_center_robot().x)
-            {
-                  V = V/fabs(V); //assume velocidade máxima na direçao da bola
-                  angulo2 = olhar(rb, campo->fleftx, campo->meio_campo_y);
-                  W = controle_angular_Kamarry(rb, campo->fleftx, campo->meio_campo_y,1);
-            }
-        }
-
-         if(bola.x > campo->lzagueiro)
-                {
-                    if(bola.y < campo->meio_campo_y)
-                    {
-                        W = controle_angular_Kamarry(rb, campo->lzagueiro, campo->fbot);
-                        V = controle_linear_Kamarry(rb,campo->lzagueiro,campo->fbot);
-                    }
-                    else
-                    {
-                          W = controle_angular_Kamarry(rb, campo->lzagueiro, campo->ftop);
-                         V = controle_linear_Kamarry(rb, campo->lzagueiro, campo->ftop);
-                    }
-                }
-
-             if(bola.x > campo->lzagueiro && (rb.get_center_robot().x > campo->lzagueiro - 3 && rb.get_center_robot().x < campo->lzagueiro + 20))
-                {
-                   W = controle_angular_Kamarry(rb, rb.get_center_robot().x, rb.get_center_robot().y + campo->diametro_robo*3);
-
-                }
-
-                if(bola.x > campo->lzagueiro && (bola.y < (campo->area_boty - campo->diametro_robo) || bola.y > (campo->area_topy + campo->diametro_robo)))
-                {
-                    W = controle_angular_Kamarry(rb, bola.x, bola.y);
-
-                    V = controle_linear_Kamarry(rb,bola.x,bola.y);
-                }
-
-         int flag = sairparede(rb);
-
-                if (flag == 1)
-                {
-                    V = -0.2;
-                    W = 0.2;
-                }
-                if (flag == 2)
-                {
-                    V = -0.2;
-                    W = -0.2;
-                }
-                if (flag == 3)
-                {
-                    V = 0.2;
-                    W = -0.2;
-                }
-                if (flag == 4)
-                {
-                    V = 0.2;
-                    W = 0.2;
-                }
-
-                if(flag>0) // perto da parede de alguma forma
-                {
-                    //Vou usar isso pra, se a bola estiver entre o robo e a parede, o robo gira no sentido mais conveniente!!
-                    if (distancia(rb, bola.x, bola.y)<campo->diametro_robo)
-                    {
-                        if (bola.y > campo->meio_campo_y) // bola acima do meio de campo
-                        {
-                            W = -1;
-                        }
-                        else
-                        {
-                            W = 1;
-                        }
-                    }
-                    else
-                    {
-
-                    }
-                }
-
-
-        resultado = gera_comandos_vr(rb, V, W);
-        return(resultado);
-}
-
 comandos Strategy::raphael(Robot rb)
 {
     comandos resultado;
@@ -913,15 +784,6 @@ comandos Strategy::parado(Robot rb)
     //resultado = gera_comandos_vr(rb, V, W);
     resultado.vrD= 0;
     resultado.vrE= 0;
-    return(resultado);
-}
-
-comandos Strategy::penalty_des(Robot rb)
-{
-    comandos resultado;
-    V = 1;
-    W = 0;
-    resultado = gera_comandos(rb, V, W);
     return(resultado);
 }
 
@@ -1191,7 +1053,7 @@ comandos Strategy::goleiro2(Robot rb)
     return(resultado);
 }
 
-comandos Strategy::p_cima(Robot rb)
+comandos Strategy::vitoria(Robot rb)
 {
     float angulo_bola;
     comandos resultado;
@@ -1215,306 +1077,6 @@ comandos Strategy::p_cima(Robot rb)
             }
         }
         else // bola antes do robo, jogada defensiva, usar preditor longo
-        {
-            angulo = olhar(rb, bola.pred[2].x, bola.pred[2].y);
-
-            W = controle_angular_Kamarry(rb, bola.pred[2].x, bola.pred[2].y);
-            V = controle_linear_Kamarry(rb, bola.pred[2].x, bola.pred[2].y);
-        }
-
-
-        // se o robô estiver perto da bola e apontado para ela
-        if(bola.x > (rb.get_center_robot().x - campo->diametro_robo*0.4) && (distancia(rb, bola.x, bola.y) < campo->diametro_robo*0.7) && flag_fire == 0)
-        {
-            if(bola.y < campo->area_boty)
-            {
-                W = 1;
-            }
-            else if(bola.y > campo->area_topy)
-            {
-                W = -1;
-            }
-            else
-            {
-                angulo2 = olhar(rb, campo->frightx, rb.get_center_robot().y);
-                if(bola.y < campo->meio_campo_y)
-                {
-                    cout << "Baixo" << endl;
-                    if(angulo2.fi > 20)
-                        W = 1;
-                    else
-                        W = -1;
-                }
-                else
-                {
-                    cout << "Cima" << endl;
-                    if(angulo2.fi > 20)
-                        W = -1;
-                    else
-                        W = 1;
-                }
-            }
-            if(bola.x > campo->area_right)
-            {
-                if(bola.y > campo->gtopy)
-                    W = -1;
-                if(bola.y < campo->gboty)
-                    W = 1;
-            }
-        }
-
-        angulo2 = olhar(rb, campo->frightx, campo->meio_campo_y);
-        if ((bola.x > rb.get_center_robot().x) & (distancia(rb, bola.x, bola.y) < campo->diametro_robo) & (fabs(angulo.fi) < 45) & (fabs(angulo2.fi) < 45) )
-        {
-            V = V/(2*fabs(V)); //assume metade da velocidade máxima na direçao da bola
-            W = -(angulo.fi/fabs(angulo.fi));
-            if(bola.x > rb.get_center_robot().x)
-            {
-                if(flag_fire == 0)
-                {
-                    flag_fire = 1;
-                    contadorr = 0;
-                }
-                V = V/fabs(V); //assume velocidade máxima na direçao da bola
-                if(flag_fire == 1)
-                    W = controle_angular_Kamarry(rb, campo->gright, campo->gboty);
-                else
-                    W = controle_angular_Kamarry(rb, campo->gright, campo->gboty,1);
-            }
-        }
-
-        if(bola.x < campo->lzagueiro)
-        {
-            if(bola.y < campo->meio_campo_y)
-            {
-                W = controle_angular_Kamarry(rb, campo->lzagueiro, campo->fbot);
-                V = controle_linear_Kamarry(rb,campo->lzagueiro,campo->fbot);
-            }
-            else
-            {
-                 W = controle_angular_Kamarry(rb, campo->lzagueiro, campo->ftop);
-                 V = controle_linear_Kamarry(rb, campo->lzagueiro, campo->ftop);
-            }
-        }
-
-        if(bola.x < campo->lzagueiro && (rb.get_center_robot().x > campo->lzagueiro - 3 && rb.get_center_robot().x < campo->lzagueiro + 20))
-        {
-            W = controle_angular_Kamarry(rb, rb.get_center_robot().x, rb.get_center_robot().y + campo->diametro_robo*3);
-        }
-
-        if(bola.x < campo->lzagueiro && (bola.y < (campo->area_boty - campo->diametro_robo) || bola.y > (campo->area_topy + campo->diametro_robo)))
-        {
-            W = controle_angular_Kamarry(rb, bola.pred[1].x, bola.pred[1].y);
-            V = controle_linear_Kamarry(rb,bola.pred[1].x,bola.pred[1].y);
-        }
-
-        int flag = sairparede(rb);
-
-        if (flag == 1)
-        {
-            V = -0.2;
-            W = 0.2;
-        }
-        if (flag == 2)
-        {
-            V = -0.2;
-            W = -0.2;
-        }
-        if (flag == 3)
-        {
-            V = 0.2;
-            W = -0.2;
-        }
-        if (flag == 4)
-        {
-            V = 0.2;
-            W = 0.2;
-        }
-
-        if(flag>0) // perto da parede de alguma forma
-        {
-            //Vou usar isso pra, se a bola estiver entre o robo e a parede, o robo gira no sentido mais conveniente!!
-            if (distancia(rb, bola.x, bola.y)<campo->diametro_robo)
-            {
-                if (bola.y > campo->meio_campo_y) // bola acima do meio de campo
-                {
-                    W = 1;
-                }
-                else
-                {
-                    W = -1;
-                }
-            }
-            else
-            {
-
-            }
-        }
-
-
-        if(flag_fire == 1)
-            contadorr++;
-
-        if(contadorr > 10)
-        {
-           contadorr = 0;
-           flag_fire = 2;
-        }
-
-        if(flag_fire == 2 && distancia(rb,bola.x,bola.y) > 50)
-            flag_fire = 0;
-
-        //cout << "Count: " << contadorr << " Flag: " << flag_fire << endl;
-
-        resultado = gera_comandos(rb, V, W);
-        return(resultado);
-}
-
-comandos Strategy::pegandofogo(Robot rb)
-{
-
-    comandos resultado;
-    ang_err angulo, angulo2;
-    vector<double> vetorOri;
-    vector<double> vetorGol;
-    double mod = 0;
-    double produtoInterno;
-
-    vetorOri.push_back(cos(rb.get_orientation()*M_PI/180));
-    vetorOri.push_back(sin(rb.get_orientation()*M_PI/180));
-    vetorGol.push_back(campo->gright-rb.get_center_robot().x);
-    vetorGol.push_back(campo->meio_campo_y-rb.get_center_robot().y);
-
-    mod = sqrt(pow(vetorGol[0],2)+pow(vetorGol[1],2));
-
-    vetorGol[0] = vetorGol[0]/mod; // Normalizando
-    vetorGol[1] = vetorGol[1]/mod;
-
-    //Calculo o produto interno
-    produtoInterno = vetorGol[0]*vetorOri[0]+vetorGol[1]*vetorOri[1];
-
-    int tal1,tal2;
-    tal1 = 5;
-    tal2 = 3;
-    double y23 = exp(tal1*fabs(produtoInterno));
-    y23 = y23 - 1;
-    y23 = y23/(exp(tal1)-1);
-    cout << y23 << " " ;
-    cout << rb.get_orientation()<< endl;
-
-    double y25 = -exp(tal2*fabs(produtoInterno)) + exp(tal2);
-    y25 = y25/(exp(tal2-1));
-    cout << y25 << "---" ;
-    cout << rb.get_orientation()<< endl;
-
-    angulo = olhar(rb, bola.x, bola.y);
-    W = controle_angular_Kamarry(rb, bola.x, bola.y);
-    V = controle_linear_Kamarry(rb, bola.x, bola.y);
-
-    if ((distancia(rb, bola.x, bola.y) < 35) & (fabs(angulo.fi) < 45))
-    {
-        angulo2 = olhar(rb, campo->gright, campo->meio_campo_y);
-        //cout << angulo2.fi << endl;
-        V = y23*V/(fabs(V)); //assume metade da velocidade máxima na direçao da bola
-        //W = -(angulo.fi/fabs(angulo.fi));
-        if(fabs(produtoInterno<0.5))
-            W = controle_angular_Kamarry(rb, campo->frightx, campo->meio_campo_y);
-        else
-            W = 3*controle_angular_Kamarry(rb, campo->frightx, campo->meio_campo_y);
-        /*if(bola.x > rb.get_center_robot().x)
-        {
-            if(flag_fire == 0)
-            {
-                flag_fire = 1;
-                contadorr = 0;
-            }
-            V = V/fabs(V); //assume velocidade máxima na direçao da bola
-            angulo2 = olhar(rb, campo->frightx, campo->meio_campo_y);
-            if(flag_fire == 1)
-                W = controle_angular_Kamarry(rb, campo->frightx, campo->meio_campo_y);
-            else
-                W = controle_angular_Kamarry(rb, campo->frightx, campo->meio_campo_y,1);
-        }*/
-    }
-
-    /*if(V > 0)
-    {
-        if (abs(rb.get_orientation())<45)
-            cout << "Frente" <<endl;
-        else if(((rb.get_orientation())>45) && ((rb.get_orientation())<135))
-            cout <<"Direita"<<endl;
-        else if(((rb.get_orientation())<-45) && ((rb.get_orientation())>-135))
-            cout <<"Esquerda" <<endl;
-        else
-            cout <<"Tras" <<endl;
-    }
-    else
-    {
-        if (abs(rb.get_orientation())<45)
-            cout << "Tras" <<endl;
-        else if(((rb.get_orientation())>45) && ((rb.get_orientation())<135))
-            cout <<"Esquerda"<<endl;
-        else if(((rb.get_orientation())<-45) && ((rb.get_orientation())>-135))
-            cout <<"Direita" <<endl;
-        else
-            cout <<"Frente" <<endl;
-    }*/
-    int flag = sairparede(rb);
-
-    if (flag == 1)
-    {
-        V = -0.2;
-        W = 0.2;
-    }
-    if (flag == 2)
-    {
-        V = -0.2;
-        W = -0.2;
-    }
-    if (flag == 3)
-    {
-        V = 0.2;
-        W = -0.2;
-    }
-    if (flag == 4)
-    {
-        V = 0.2;
-        W = 0.2;
-    }
-
-    resultado = gera_comandos(rb, V, W);
-    return(resultado);
-}
-
-comandos Strategy::vitoria(Robot rb)
-{
-    float angulo_bola;
-    comandos resultado;
-        ang_err angulo, angulo2, angulo3;
-        angulo3 = olhar(rb, bola.x, bola.y);
-        if (bola.x>rb.get_center_robot().x) // bola depois do robo, devo pegar o preditor curto ou so bola, dependendo do angulo da trajetoria dela
-        {
-            angulo_bola = atan((bola.pred[0].y-bola.y)/(bola.pred[0].x-bola.x+0.001))*180/3.14159265;
-            if ((angulo_bola<45 && angulo_bola>0) || (angulo_bola > -45 && angulo_bola<0)) // se a bola estiver numa trajetoria suficientemente horizontal
-            {
-                angulo = olhar(rb, bola.x, bola.y);
-                W = controle_angular(rb, angulo.fi);
-                V = controle_linear_Kamarry(rb, bola.x, bola.y);
-            }
-            else
-            {
-                angulo = olhar(rb, bola.pred[0].x, bola.pred[0].y);
-
-                W = controle_angular(rb, angulo.fi);
-                V = controle_linear_Kamarry(rb, bola.pred[0].x, bola.pred[0].y);
-            }
-        }
-        else if((distancia(rb, bola.x, bola.y) < campo->diametro_robo) & (fabs(angulo3.fi) < 30) & (fabs(angulo2.fi) < 30))// bola antes do robo, jogada defensiva, usar preditor longo
-        {
-            W = controle_angular_Kamarry(rb, campo->meio_campo_x, campo->meio_campo_y);
-            V = controle_linear_Kamarry(rb, campo->meio_campo_x, campo->meio_campo_y);
-        }
-        else
         {
             angulo = olhar(rb, bola.pred[2].x, bola.pred[2].y);
 

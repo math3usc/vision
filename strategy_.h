@@ -60,8 +60,6 @@ public:
     vector<double> w_ang, orientation;
     double vm1, vm2, vm3;
     double flaag;
-    bool gole;
-    int cont_gol;
     Func Atacante;
     Func Goleiro;
     Func Zagueiro;
@@ -353,13 +351,11 @@ public:
     comandos atacante(Robot);
 
     int flag_fire, f_ata;
-    Point vet1, vet2;
     int flag_1,flag_2,flag_3;
     int contadorr;
 
     comandos goleiro2(Robot);
     comandos vitoria(Robot);
-    comandos cr7_contrario(Robot);
     comandos samuel(Robot);
     comandos Ricardo_rocha(Robot);
     comandos Ricardo_rocha_cont(Robot);
@@ -372,9 +368,6 @@ public:
     comandos Garrincha_contrario(Robot);
     comandos raphael(Robot);
     comandos parado(Robot);
-    comandos penalty_des(Robot);
-    comandos p_cima(Robot);
-    comandos pegandofogo(Robot);
     int sairparede(Robot);
     int larga_robos(Robot, int, int);
     comandos deslargar(Robot, int, int);

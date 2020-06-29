@@ -1,5 +1,31 @@
+/*
+ ________________________________________________________________________________________
+| INFORMAÇÕES:																			 |
+|	 ARQUIVO:    mainwindow.h														     |
+|	 SISTEMA:    VisionSystem															 |
+|	 COMPONENTE: mainwindow															     |
+|	 LINGUAGEM:  C++																	 |
+|	 E-MAIL:     gprufs@gmail.com														 |
+|	 CONTATO:    http://gprufs.org/														 |
+|	 AUTOR:      GPRUFS 2015															 |
+|																						 |
+| DESCRIÇÃO:     Esse arquivo contém a definição da classe MainWindows que corresponde   |
+|                à janela principal do programa e tem a função de instanciar e juntar    |
+|                todos os módulos necessários para o funcionamento desse sistema.        |
+|																			   			 |
+|																						 |
+|                               (c) Copyright GPRUFS 2015                                |
+|________________________________________________________________________________________|
+*/
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
+
+#include <opencv4/opencv2/opencv.hpp>
+#include <opencv4/opencv2/highgui.hpp>
+#include <opencv4/opencv2/core.hpp>
+#include <opencv4/opencv2/imgproc.hpp>
+#include <librealsense2/rs.hpp>
 
 #include <QMainWindow>
 #include <QMessageBox>
@@ -7,21 +33,18 @@
 #include <QImage>
 #include <QFileDialog>
 #include <iostream>
-
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/videoio.hpp>
 #include <string>
 #include <time.h>
 #include <vector>
 
+#include "Configurations.h"
 #include "Robot.h"
 #include "Build_Robot.h"
-#include "segmentation.h"
+#include "Segmentation.h"
 #include "Grouping.h"
 #include "Ball.h"
 #include "controlador.h"
-#include "comunicacao.h"
+#include "serialcomm.h"
 #include "constantes_robot.h"
 #include <omp.h>
 #include "strategy.h"
@@ -31,9 +54,15 @@
 #include <cstdlib>
 #include <stdlib.h>
 #include <stdio.h>
+//#include <Windows.h>
 #include <assert.h>
-#include <chrono>
-//#include "comandos.h"
+//#include <commctrl.h>
+//#include "serialcomm.h"
+#include "comandos.h"
+#include "iostream"
+#include "fstream"
+
+using namespace rs2;
 
 namespace Ui {
 class MainWindow;
@@ -51,13 +80,26 @@ private:
     Ui::MainWindow *ui;
     int classificador; //0-Find Contours...//1- Kameans
     QTimer *cronometro;
+    QTimer *cronometro2;
     Configurations *set;
-
-    cv::VideoCapture cap;
-
+    VideoCapture cap;
     Mat input;
     double dist;
     string filename = "Settings.xml";
+
+    context ctx;
+    config cfg;
+    bool razer;
+    pipeline p;
+    frameset frames;
+    frame color;
+    sensor color_sensor;
+
+    ofstream out;
+
+    FILE* arquivo;
+    filebuf fb;
+    ostream *os;
 
     vector<Point>azul_pt;       // Vetor de coordenadas(x,y) da posição do centro de cada um dos corpos azuis.
     vector<Point>vermelho_pt;   // Vetor de coordenadas(x,y) da posição do centro de cada um dos corpos vermelhos.
@@ -72,6 +114,27 @@ private:
     Scalar Orange[2];           // vetor com o intervalo de limiares para a cor laranja. orange[0]->limiar mínimo orange[1]->limiar máximo
     Scalar Mg[2];               // vetor com o intervalo de limiares para a cor magenta. Mg[0]->limiar mínimo Mg[1]->limiar máximo
     Scalar Green[2];            // vetor com o intervalo de limiares para a cor verde. Green[0]->limiar mínimo Green[1]->limiar máximo
+
+    Scalar New_Blue_1[2];             // vetor com o intervalo de limiares para a cor azul. Blue[0]->limiar mínimo Blue[1]->limiar máximo
+    Scalar New_Red_1[2];              // vetor com o intervalo de limiares para a cor vermelho. Red[0]->limiar mínimo Red[1]-limiar máximo
+    Scalar New_Yellow_1[2];           // vetor com o intervalo de limiares para a cor amarelo. yellow[0]->limiar mínimo yellow[1]->limiar máximo
+    Scalar New_Orange_1[2];           // vetor com o intervalo de limiares para a cor laranja. orange[0]->limiar mínimo orange[1]->limiar máximo
+    Scalar New_Mg_1[2];               // vetor com o intervalo de limiares para a cor magenta. Mg[0]->limiar mínimo Mg[1]->limiar máximo
+    Scalar New_Green_1[2];            // vetor com o intervalo de limiares para a cor verde. Green[0]->limiar mínimo Green[1]->limiar máximo
+
+    Scalar New_Blue_2[2];             // vetor com o intervalo de limiares para a cor azul. Blue[0]->limiar mínimo Blue[1]->limiar máximo
+    Scalar New_Red_2[2];              // vetor com o intervalo de limiares para a cor vermelho. Red[0]->limiar mínimo Red[1]-limiar máximo
+    Scalar New_Yellow_2[2];           // vetor com o intervalo de limiares para a cor amarelo. yellow[0]->limiar mínimo yellow[1]->limiar máximo
+    Scalar New_Orange_2[2];           // vetor com o intervalo de limiares para a cor laranja. orange[0]->limiar mínimo orange[1]->limiar máximo
+    Scalar New_Mg_2[2];               // vetor com o intervalo de limiares para a cor magenta. Mg[0]->limiar mínimo Mg[1]->limiar máximo
+    Scalar New_Green_2[2];            // vetor com o intervalo de limiares para a cor verde. Green[0]->limiar mínimo Green[1]->limiar máximo
+
+    Scalar HSV_Blue[2];             // vetor com o intervalo de limiares para a cor azul. Blue[0]->limiar mínimo Blue[1]->limiar máximo
+    Scalar HSV_Red[2];              // vetor com o intervalo de limiares para a cor vermelho. Red[0]->limiar mínimo Red[1]-limiar máximo
+    Scalar HSV_Yellow[2];           // vetor com o intervalo de limiares para a cor amarelo. yellow[0]->limiar mínimo yellow[1]->limiar máximo
+    Scalar HSV_Orange[2];           // vetor com o intervalo de limiares para a cor laranja. orange[0]->limiar mínimo orange[1]->limiar máximo
+    Scalar HSV_Mg[2];               // vetor com o intervalo de limiares para a cor magenta. Mg[0]->limiar mínimo Mg[1]->limiar máximo
+    Scalar HSV_Green[2];
 
     Mat Mascaras[2];            //vetor com as mascaras usadas para operações de abertura e fechamento.
     Rect roi;                   // retângulo usado para fazer a retirada da imagem do campo
@@ -113,19 +176,23 @@ private:
     Point pos_bola[2];
     int aux;
 
-private slots:
+    int Color_Space, cont_help;
+
+private Q_SLOTS:
 
     /*
      * Método:Refresh_position_robots();
      *
      * Descrição: Método responsável capturar e processar toda a imagem do campo, a fim de encontrar as posições centrais dos robôs
-     *
+	 *
      * Parâmetro:
      *           Nenhum.
      * Retorno:
      *       Nenhum.
     */
      void Refresh_position_robots();
+
+     void calibration();
 
      void on_actionKmeans_triggered();
 
@@ -193,8 +260,8 @@ private slots:
       *            Lista dos dados  carregados:
       *                - Limiares
       *                - Configurações do campo
-      *                - Configurações da câmera
-      *                - Constantes dos robôs
+	  *                - Configurações da câmera
+	  *                - Constantes dos robôs
       *
       * Parâmetro:
       *           Nenhum.
@@ -203,7 +270,121 @@ private slots:
      */
      void on_actionAbrir_Settings_triggered();
 
-signals:
+     void on_select_RGB_triggered();
+
+     void on_select_New_RGB_triggered();
+
+     void on_select_HSV_triggered(bool checked);
+
+     void on_select_HSV_triggered();
+
+     void on_contraste_valueChanged(int value);
+
+     void on_saturacao_valueChanged(int value);
+
+     void on_brilho_valueChanged(int value);
+
+     void on_exposicao_valueChanged(int value);
+
+     void on_Resolucao_currentIndexChanged(int index);
+
+     void on_hue_valueChanged(int value);
+
+     void on_white_balance_valueChanged(int value);
+
+     void on_Gamma_valueChanged(int value);
+
+     void on_Gain_valueChanged(int value);
+
+     void on_Back_Compensation_valueChanged(int value);
+
+     void on_nitidez_valueChanged(int value);
+
+     Mat* select_Limiar2Segment(Mat);
+
+     void change_limiares(int value, int row, int col);
+
+     void on_bmin_valueChanged(int value);
+
+     void on_gmin_valueChanged(int value);
+
+     void on_rmin_valueChanged(int value);
+
+     void on_bmax_valueChanged(int value);
+
+     void on_gmax_valueChanged(int value);
+     
+     void on_rmax_valueChanged(int value);
+     
+     void on_comboBox_colors_currentIndexChanged(int index);
+
+     void set_ui_values();
+
+     void on_spinBox_abertura_valueChanged(int arg1);
+
+     void on_spinBox_fechamento_valueChanged(int arg1);
+
+     void on_comboBox_tipomask_currentIndexChanged(int index);
+
+     void set_mascaras();
+
+     void on_spinBox_cut_y_valueChanged(int arg1);
+
+     void on_spinBox_cut_x_valueChanged(int arg1);
+
+     void on_spinBox_cut_width_valueChanged(int arg1);
+
+     void on_spinBox_cut_height_valueChanged(int arg1);
+
+     void on_checkBox_expo_auto_clicked(bool checked);
+
+     void on_checkBox_wb_auto_clicked(bool checked);
+
+     void on_pushButton_linhas_campo_clicked();
+
+     void plotar_principais();
+
+     void plotar_secundarias();
+
+     void on_spinBox_ftop_valueChanged(int arg1);
+
+     void on_spinBox_fbot_valueChanged(int arg1);
+
+     void on_spinBox_gtopy_valueChanged(int arg1);
+
+     void on_spinBox_gboty_valueChanged(int arg1);
+
+     void on_spinBox_fleftx_valueChanged(int arg1);
+
+     void on_spinBox_frightx_valueChanged(int arg1);
+
+     void on_spinBox_gleft_valueChanged(int arg1);
+
+     void on_spinBox_gright_valueChanged(int arg1);
+
+     void on_spinBox_area_left_valueChanged(int arg1);
+
+     void on_spinBox_area_right_valueChanged(int arg1);
+
+     void on_spinBox_lzagueiro_valueChanged(int arg1);
+
+     void on_spinBox_lgoleiro_valueChanged(int arg1);
+
+     void on_spinBox_area_topy_valueChanged(int arg1);
+
+     void on_spinBox_area_boty_valueChanged(int arg1);
+
+     void on_spinBox_p_area_b_valueChanged(int arg1);
+
+     void on_spinBox_p_area_t_valueChanged(int arg1);
+
+     void on_pushButton_cortar_clicked();
+
+     void on_checkBox_help_lines_pressed();
+
+     void on_checkBox_help_lines_clicked(bool checked);
+
+Q_SIGNALS:
      void Robos(Robot rb1,Robot rb2,Robot rb3);
 
 

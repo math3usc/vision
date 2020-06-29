@@ -1,8 +1,31 @@
+/*
+ ________________________________________________________________________________________
+| INFORMAÇÕES:																			 |
+|	 ARQUIVO:    Ball.h													                 |
+|	 SISTEMA:    VisionSystem															 |
+|	 COMPONENTE: Ball													                 |
+|	 LINGUAGEM:  C++																	 |
+|	 E-MAIL:     gprufs@gmail.com														 |
+|	 CONTATO:    http://gprufs.org/														 |
+|	 AUTOR:      GPRUFS 2015															 |
+|																						 |
+| DESCRIÇÃO:     Esse arquivo contém a definição da classe Ball                          |
+|                que é responsável por guardar as coordenadas                            |
+|                x e y da posição da bola com relação à imagem                           |
+|                do campo.                                                               |
+|																			   			 |
+|																						 |
+|                               (c) Copyright GPRUFS 2015                                |
+|________________________________________________________________________________________|
+*/
+
 #ifndef BALL_H_
 #define BALL_H_
-
 #include <opencv2/opencv.hpp>
 #include <fstream>
+#include <vector>
+#include <Configurations.h>
+
 using namespace std;
 using namespace cv;
 
@@ -13,6 +36,10 @@ private:
 public:
     int x; // Coordenada x da posição da bola
     int y; // Coordenada y da posição da bola
+    int contador;
+    vector<Point> pos;
+    vector<Point> pred;
+    int area_left;
 
     /*
      * Método: Ball()
@@ -21,7 +48,7 @@ public:
      * Pârametro:
      *         Nenhum
     */
-    Ball();
+	Ball();
 
     /*
      * Método: Refresh_Position(Point bola);
@@ -35,7 +62,7 @@ public:
      *       Nenhum.
      *
     */
-    void Refresh_Position(Point bola);
+	void Refresh_Position(Point bola);
 
     /*
      * Método: Refresh_Position(int xa, int ya);
@@ -50,12 +77,12 @@ public:
      * Retorno:
      *       Nenhum.
     */
-    void Refresh_Position(int xa,int ya);
+	void Refresh_Position(int xa,int ya);
+    vector<Point> Predict_Ball(void);
+    vector<Point> Predict_Ball_2(void);
+    void Set_Campo(Configurations *c);
 
 
-
-    ~Ball();
+	~Ball();
 };
-
-#endif // BALL
-
+#endif

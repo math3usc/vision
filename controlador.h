@@ -1,5 +1,23 @@
-#ifndef CONTROLADOR
-#define CONTROLADOR
+/*
+ ________________________________________________________________________________________
+| INFORMAÇÕES:																			 |
+|	 ARQUIVO:    controlador.h														         |
+|	 SISTEMA:    VisionSystem															 |
+|	 COMPONENTE: controlador															     |
+|	 LINGUAGEM:  C++																	 |
+|	 E-MAIL:     gprufs@gmail.com														 |
+|	 CONTATO:    http://gprufs.org/														 |
+|	 AUTOR:      GPRUFS 2015															 |
+|																						 |
+| DESCRIÇÃO:     Esse arquivo contém funções necessárias para o controle da movimentação |
+|                do robô.
+|																			   			 |
+|																						 |
+|                               (c) Copyright GPRUFS 2015                                |
+|________________________________________________________________________________________|
+*/
+#ifndef CONTROLADOR_H_
+#define CONTROLADOR_H_
 
 #include "Robot.h"
 
@@ -13,7 +31,7 @@
 */
 struct comandos
 {
-    unsigned char vrD, vrE, logica;
+	unsigned char vrD, vrE, logica;
 };
 /*Descrição: Objeto responsável por guardar o valor de ângulo em radianos
  *			 do quando o robô precisa girar para ficar na mesma orientação
@@ -25,8 +43,8 @@ struct comandos
 */
 struct ang_err
 {
-    double fi;
-    int flag;
+	double fi;
+	int flag;
 };
 
     /*
@@ -84,7 +102,7 @@ struct ang_err
      *                          um determinado robô, coordenadas de posição
      *                          orientação e outras característica.
      *
-     *            2)  fi -> angulo correspondente ao quanto o robô irá
+     *            2)  fi -> ângulo correspondente ao quanto o robô irá
      *                           girar.
      *
      * Retorno:
@@ -92,7 +110,7 @@ struct ang_err
      *
      */
     double controle_angular(Robot rb,double);
-
+	
     double controle_angular_goleiro(double);
 
     /*
@@ -116,7 +134,11 @@ struct ang_err
      *
      */
     double controle_linear(Robot, double, double);
-
+    double controle_linear_Kamarry(Robot, double,double);
+    double controle_linear_Kamarry(Robot, double,double,double);
+    double controle_angular_Kamarry(Robot, double, double);
+    double controle_angular_Kamarry(Robot, double, double,double);
+	
     double controle_linear_goleiro(Robot, double, double);
 
     /*
@@ -137,12 +159,15 @@ struct ang_err
      *            3)  W -> Valor de velocidade angular
      *
      * Retorno:
-     *        comandos -> Objeto que guarda os valores dos sinais de velocidade
-     *                    para roda direita e para roda esquerda, esses valores
-     *                    vão de 0 à 254.
+     *        comandos -> Objeto que guarda os valores dos sinais de velocidade 
+	 *                    para roda direita e para roda esquerda, esses valores 
+	 *                    vão de 0 à 254.
      *
      */
+
     comandos gera_comandos_vr(Robot, double, double);
+    comandos gera_comandos(Robot, double, double);
+    comandos atual_gera_comandos_vr(Robot rb, double, double);
 
     /*
      * Método:  distancia(Robot, double, double);
@@ -166,5 +191,5 @@ struct ang_err
      */
     double distancia(Robot, double, double);
 
-#endif // CONTROLADOR
 
+#endif /* CONTROLADOR_H_ */

@@ -7,36 +7,66 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     cronometro = new QTimer(this);
+    cronometro2 = new QTimer(this);
+
+    arquivo = fopen("saida.txt", "w");
+    if(arquivo == NULL)
+        fprintf(stderr, "Erro ao abrir o arquivo.txt.\n");
+
+    out.open("teste2.txt");
+    /////////////////////////////////// comunicação serial ///////////////////////////////
+    int val = inicia_comunicacao_serial();
+    if (val == 0) // se a porta não estiver disponível encerre o programa
+        QMessageBox::warning(this, tr("Erro"), "Erro na porta serial!", QMessageBox::Close);
 
     /////////////////////////////////// comunicação serial ///////////////////////////////
-        int val = inicia_comunicacao_serial();
-        if (val == 0) // se a porta não estiver disponível encerre o programa
-            int reta = QMessageBox::warning(this, tr("Erro"), "Erro na porta serial!", QMessageBox::Close);
-
-   /////////////////////////////////// comunicação serial ///////////////////////////////
 
     connect(cronometro,SIGNAL(timeout()),this,SLOT(Refresh_position_robots()));
     cronometro->start(25);
+
+    connect(cronometro2,SIGNAL(timeout()),this,SLOT(calibration()));
+    cronometro2->start(25);
+    cronometro2->blockSignals(true);
+
     con = new Constantes_robot();
 
-
     con->hide();
-
 
     comando = -2;
     comando_atacante = -1;
     comando_goleiro = -1;
     comando_zagueiro = -1;
 
-    cap.open(1);
-    set = new Configurations(cap,"Settings.xml");
+    razer = false;
+    if (ctx.query_devices().size() > 0)
+    {
+        razer = true;
 
+        auto advanced_sensors = ctx.query_all_sensors();
+
+        for (auto&& sensor : advanced_sensors)
+        {
+            std::string module_name = sensor.get_info(RS2_CAMERA_INFO_NAME);
+            std::cout << module_name << std::endl;
+            if (module_name == "RGB Camera")
+            {
+                cout << "Definido: " << module_name << endl;
+                color_sensor = sensor;
+            }
+        }
+        set = new Configurations(cfg,"Settings.xml");
+        p.start(cfg);
+        frames = p.wait_for_frames();
+        color = frames.get_color_frame();
+    }
+    else
+    {
+        cap.open(0);
+        set = new Configurations(cap,"Settings.xml");
+    }
 
     roi = set->GetCutFramePoints();
-    cout << "Xmin: " << roi.x << " Xmax: " << roi.width << endl;
-    cout << "Ymin: " << roi.y << " Ymax: " << roi.height << endl;
     set->ReadConfigurationsRobots("Constantes.xml");
-    con->setar_constantes(set->rb1,set->zonamorta_rb1,set->rb2,set->zonamorta_rb2,set->rb3,set->zonamorta_rb3);
 
     set->GetConfigurationsElement(Mascaras);
     set->GetThresholdColor(Blue, "Blue");
@@ -46,97 +76,167 @@ MainWindow::MainWindow(QWidget *parent) :
     set->GetThresholdColor(Mg,"Magenta");
     set->GetThresholdColor(Green,"Green");
 
-     azul= new Segmentation(Blue[0], Blue[1],Mascaras);
-     vermelho = new Segmentation(Red[0], Red[1],Mascaras);
-     amarelo = new Segmentation(Yellow[0], Yellow[1],Mascaras);
-     laranja = new Segmentation(Orange[0], Orange[1],Mascaras);
-     magenta = new Segmentation(Mg[0],Mg[1],Mascaras);
-     verde = new Segmentation(Green[0],Green[1],Mascaras);
+    set->GetThresholdColor_HSV(HSV_Blue, "Blue");
+    set->GetThresholdColor_HSV(HSV_Red, "Red");
+    set->GetThresholdColor_HSV(HSV_Yellow, "Yellow");
+    set->GetThresholdColor_HSV(HSV_Orange, "Orange");
+    set->GetThresholdColor_HSV(HSV_Mg,"Magenta");
+    set->GetThresholdColor_HSV(HSV_Green,"Green");
 
-     azul_group = new Grouping(3,0);
-     amarelo_group = new Grouping(3,0);
-     verde_group =  new Grouping(2,0);
-     vermelho_group = new Grouping (2,0);
-     magenta_group = new Grouping(2,0);
-     laranja_group = new Grouping (1,0);
+    set->GetThresholdColor_NEWRGB(New_Blue_1,New_Blue_2, "Blue");
+    set->GetThresholdColor_NEWRGB(New_Red_1, New_Red_2, "Red");
+    set->GetThresholdColor_NEWRGB(New_Yellow_1,New_Yellow_2, "Yellow");
+    set->GetThresholdColor_NEWRGB(New_Orange_1,New_Orange_2,"Orange");
+    set->GetThresholdColor_NEWRGB(New_Mg_1,New_Mg_2,"Magenta");
+    set->GetThresholdColor_NEWRGB(New_Green_1,New_Green_2,"Green");
 
-     Machine_of_Robots = new Build_Robot(3);
-     Machine_of_Robots->Record_Position(false);
+    //cout<<New_Blue_1[0]<<" "<<New_Blue_1[1];
 
-     Machine_of_Robots->Change_dist_cores(25);//mudar aqui distancia entra a parte azul e a outra cor
+    azul = new Segmentation(Mascaras);
+    vermelho = new Segmentation(Mascaras);
+    amarelo = new Segmentation(Mascaras);
+    laranja = new Segmentation(Mascaras);
+    magenta = new Segmentation(Mascaras);
+    verde = new Segmentation(Mascaras);
 
+    azul->Get_Limiar_RGB(Blue[0], Blue[1]);
+    vermelho->Get_Limiar_RGB(Red[0], Red[1]);
+    amarelo->Get_Limiar_RGB(Yellow[0], Yellow[1]);
+    laranja->Get_Limiar_RGB(Orange[0], Orange[1]);
+    magenta->Get_Limiar_RGB(Mg[0],Mg[1]);
+    verde->Get_Limiar_RGB(Green[0],Green[1]);
 
-     Cerebro = new Strategy();
-     Cerebro->Setar_Campo(set);
+    azul->Get_Limiar_NewRGB(New_Blue_1[0], New_Blue_1[1],New_Blue_2[0], New_Blue_2[1]);
+    vermelho->Get_Limiar_NewRGB(New_Red_1[0], New_Red_1[1], New_Red_2[0], New_Red_2[1]);
+    amarelo->Get_Limiar_NewRGB(New_Yellow_1[0], New_Yellow_1[1],New_Yellow_2[0], New_Yellow_2[1]);
+    laranja->Get_Limiar_NewRGB(New_Orange_1[0], New_Orange_1[1],New_Orange_2[0], New_Orange_2[1]);
+    magenta->Get_Limiar_NewRGB(New_Mg_1[0],New_Mg_1[1],New_Mg_2[0],New_Mg_2[1]);
+    verde->Get_Limiar_NewRGB(New_Green_1[0],New_Green_1[1],New_Green_2[0],New_Green_2[1]);
 
-     vector<string> nome;
+    azul->Get_Limiar_HSV(HSV_Blue[0], HSV_Blue[1]);
+    vermelho->Get_Limiar_HSV(HSV_Red[0], HSV_Red[1]);
+    amarelo->Get_Limiar_HSV(HSV_Yellow[0], HSV_Yellow[1]);
+    laranja->Get_Limiar_HSV(HSV_Orange[0], HSV_Orange[1]);
+    magenta->Get_Limiar_HSV(HSV_Mg[0],HSV_Mg[1]);
+    verde->Get_Limiar_HSV(HSV_Green[0],HSV_Green[1]);
 
-     nome = Cerebro->Get_atacantes();
+    azul_group = new Grouping(3,0);
+    amarelo_group = new Grouping(3,0);
+    verde_group =  new Grouping(4,0);
+    vermelho_group = new Grouping (2,0);
+    magenta_group = new Grouping(2,0);
+    laranja_group = new Grouping (1,0);
 
-     for(int i=0;i<nome.size();i++)
+    Machine_of_Robots = new Build_Robot(3);
+    Machine_of_Robots->Record_Position(false);
+
+    Machine_of_Robots->Change_dist_cores(25);//mudar aqui distancia entra a parte azul e a outra cor
+
+    Cerebro = new Strategy();
+    Cerebro->Setar_Campo(set);
+    Bola.Set_Campo(set);
+
+    vector<string> nome;
+
+    nome = Cerebro->Get_atacantes();
+
+    for(int i = 0; i < nome.size();i++)
         ui->combo_atacante->addItem(QString::fromStdString(nome[i]));
 
-     nome = Cerebro->Get_goleiros();
+    nome = Cerebro->Get_goleiros();
 
-     for(int i=0;i<nome.size();i++)
+    for(int i = 0; i < nome.size();i++)
         ui->combo_goleiro->addItem(QString::fromStdString(nome[i]));
 
-     nome = Cerebro->Get_zagueiros();
+    nome = Cerebro->Get_zagueiros();
 
-     for(int i=0;i<nome.size();i++)
+    for(int i = 0; i < nome.size();i++)
         ui->combo_zagueiro->addItem(QString::fromStdString(nome[i]));
 
-     nome = Cerebro->Get_Estrategias();
+    nome = Cerebro->Get_Estrategias();
 
-     for(int i=0;i<nome.size();i++)
-     ui->comboBox->addItem(QString::fromStdString(nome[i]));
-     ui->comboBox->setCurrentIndex(-1);
-     ui->combo_goleiro->setCurrentIndex(-1);
-     ui->combo_zagueiro->setCurrentIndex(-1);
-     ui->combo_atacante->setCurrentIndex(-1);
+    for(int i = 0; i < nome.size();i++)
+        ui->comboBox->addItem(QString::fromStdString(nome[i]));
+    
+    ui->comboBox->setCurrentIndex(-1);
+    ui->combo_goleiro->setCurrentIndex(-1);
+    ui->combo_zagueiro->setCurrentIndex(-1);
+    ui->combo_atacante->setCurrentIndex(-1);
 
+    if(razer)
+        for(int i = 0; i < 3; i++)
+        {
+            frames = p.wait_for_frames();
+            color = frames.get_color_frame();
+        }
+    else
+        for(int i = 0; i < 3; i++)
+            cap >> input;
 
+    time = 0;
+    pos_bola[0] = Point(-1,-1);
+    pos_bola[1] = Point(-1,-1);
+    contador = 1;
+    Color_Space = RGB;
+    
+    cont_help = 0;
 
-     cap >> input;
-     cap >> input;
-     cap >> input;
-
-     vector<Robot> robos;
-     time = 0;
-     pos_bola[0] = Point(-1,-1);
-     pos_bola[1] = Point(-1,-1);
-     contador = 1;
-     start = clock();
-     //namedWindow("Display Image", WINDOW_AUTOSIZE );
-     //cap.set(CAP_PROP_FPS,30);
-
+    set_ui_values();
 }
 
 void MainWindow::Refresh_position_robots()
 {
-    auto start=chrono::steady_clock::now();
+    if(ui->tabWidget->currentIndex() == 1)
+    {
+        cronometro->blockSignals(true);
+        cronometro2->blockSignals(false);
+    }
+
     if(!this->isVisible())
         con->close();
 
     contador++;
-    if(!cap.isOpened())
+    if(razer)
     {
-        int ret = QMessageBox::warning(this, tr("Error"), "Câmera não conectada", QMessageBox::Close);
-        this->close();
+        frames = p.wait_for_frames();
+        color = frames.get_color_frame();
+
+        // Query frame size (width and height)
+        const int w = color.as<rs2::video_frame>().get_width();
+        const int h = color.as<rs2::video_frame>().get_height();
+
+        // Create OpenCV matrix of size (w,h) from the colorized depth data
+        Mat image(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
+        input = image;
+    }
+    else
+    {
+        if(!cap.isOpened())
+            QMessageBox::warning(this, tr("Error"), "Câmera não conectada", QMessageBox::Close);
+
+        if(!cap.read(input))
+        {
+            QMessageBox::warning(this, tr("Error"), "Frame não pode ser aberto", QMessageBox::Close);
+            this->close();
+        }
     }
 
-    if(!cap.read(input))
-    {
-        int ret = QMessageBox::warning(this, tr("Error"), "Frame não pode ser aberto", QMessageBox::Close);
-        this->close();
-    }
+    start = clock();
+    if(ui->checkBox_flip->isChecked())
+        flip(input,input,1);
 
-    //imshow("Secretaria",input);
+    end = clock();
+    double aux = pow(10,6)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Flip: " << aux << "us; ";
+    fprintf(arquivo, "%f ", aux);
 
-/*
-
-    input = input(roi);
-
+    start = clock();
+    if(roi.area() > 0 && roi.width+roi.x < input.cols && roi.height+roi.y < input.rows)
+        input = input(roi);
+    end = clock();
+    aux = pow(10,6)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Cut: " << aux << "us; ";
+    fprintf(arquivo, "%f ", aux);
 
     // IMAGEM BINARIA DAS SEGMENTACOES DAS CORES
 
@@ -151,200 +251,470 @@ void MainWindow::Refresh_position_robots()
     vector<pair<Point,int> > center_camisa_amarelo;
     vector<pair<Point,int> > centers_id_camisa[3];
 
-    #pragma omp parallel sections
+    azul->Segmentation_option = Color_Space;
+    amarelo->Segmentation_option = Color_Space;
+    vermelho->Segmentation_option = Color_Space;
+    verde->Segmentation_option = Color_Space;
+    magenta->Segmentation_option = Color_Space;
+    laranja->Segmentation_option = Color_Space;
+
+    start = clock();
+
+    binary_img_verde = verde->Segmentation_Result(&input);
+    //binary_img_verde = verde->Segmentation_Result(&input_aux);
+    // imshow("verde",*binary_img_verde);
+
+    end = clock();
+    aux = pow(10,3)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Limiarização 2: " << aux << "ms; ";
+    fprintf(arquivo, "%f ", aux);
+
+/*    #pragma omp parallel sections
     {
         #pragma omp section
         {
-            binary_img_azul= azul->Segmentation_Result(&input);
+            binary_img_azul = azul->Segmentation_Result(&input);
+            //imshow("azul",*binary_img_azul);
             center_camisa_azul = azul_group->Grouping_Result(binary_img_azul);
-
         }
 
         #pragma omp section
         {
             binary_img_amarelo = amarelo->Segmentation_Result(&input);
+            //imshow("amarelo",*binary_img_amarelo);
             center_camisa_amarelo = amarelo_group->Grouping_Result(binary_img_amarelo);
-
         }
-        #pragma omp section
-        {
-            binary_img_vermelho = vermelho->Segmentation_Result(&input);
-            centers_id_camisa[0] = vermelho_group->Grouping_Result(binary_img_vermelho);
 
-
-        }
-        #pragma omp section
-        {
-            binary_img_verde = verde->Segmentation_Result(&input);
-            centers_id_camisa[1] = verde_group->Grouping_Result(binary_img_verde);
-
-        }
-        #pragma omp section
-        {
-            binary_img_magenta = magenta->Segmentation_Result(&input);
-            centers_id_camisa[2]= magenta_group->Grouping_Result(binary_img_magenta);
-
-        }
         #pragma omp section
         {
             binary_img_laranja = laranja->Segmentation_Result(&input);
-             if(laranja_group->Grouping_Result(binary_img_laranja).size()>0)
-                              Bola.Refresh_Position(laranja_group->Grouping_Result(binary_img_laranja)[0].first);
-
+            if(laranja_group->Grouping_Result(binary_img_laranja).size() > 0)
+                Bola.Refresh_Position(laranja_group->Grouping_Result(binary_img_laranja)[0].first);
         }
+    }*/
+
+    start = clock();
+
+    binary_img_azul = azul->Segmentation_Result(&input);
+    binary_img_amarelo = amarelo->Segmentation_Result(&input);
+    binary_img_laranja = laranja->Segmentation_Result(&input);
+
+    end = clock();
+    aux = pow(10,3)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Limiarização: " << aux << "ms; ";
+
+    fprintf(arquivo, "%f ", aux);
+
+    start = clock();
+
+    center_camisa_azul = azul_group->Grouping_Result(binary_img_azul);
+    center_camisa_amarelo = amarelo_group->Grouping_Result(binary_img_amarelo);
+    if(laranja_group->Grouping_Result(binary_img_laranja).size() > 0)
+        Bola.Refresh_Position(laranja_group->Grouping_Result(binary_img_laranja)[0].first);
+
+    end = clock();
+    aux = pow(10,3)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Grouping: " << aux << "ms; ";
+    fprintf(arquivo, "%f ", aux);
+
+    //imshow("azul",*binary_img_azul);
+    //imshow("amarelo",*binary_img_amarelo);
 
 
+    Mat input_aux = Mat(input.rows,input.cols,CV_8UC3);
+    if(time == 0)
+    {
+        int xsup = 0;
+        int xmin = 0;
+        int ysup = 0;
+        int ymin = 0;
+        int robotSize = set->fleftx - set->gleft;
+        for(int i = 0;i < center_camisa_azul.size();i++)
+        {
+            if((center_camisa_azul[i].first.x - robotSize) >= 0)
+                xmin = center_camisa_azul[i].first.x - robotSize;
+            else
+                xmin = 0;
+
+            if((center_camisa_azul[i].first.x + robotSize) < input_aux.cols)
+                xsup = center_camisa_azul[i].first.x + robotSize;
+            else
+                xsup = input_aux.cols - 1;
+
+            if((center_camisa_azul[i].first.y - robotSize) >= 0)
+                ymin = center_camisa_azul[i].first.y - robotSize;
+            else
+                ymin = 0;
+
+            if((center_camisa_azul[i].first.y + robotSize) < input_aux.rows)
+                ysup = center_camisa_azul[i].first.y + robotSize;
+            else
+                ysup = input_aux.rows - 1;
+
+
+            for(int j = ymin; j < ysup;j++)
+                for(int k = xmin; k < xsup;k++)
+                     input_aux.at<Vec3b>(j,k) = input.at<Vec3b>(j,k);           
+        }
     }
+    else if(time == 1)
+    {
+        int xsup = 0;
+        int xmin = 0;
+        int ysup = 0;
+        int ymin = 0;
+        int robotSize = set->fleftx - set->gleft;
+        for(int i = 0; i < center_camisa_amarelo.size();i++)
+        {
+            if((center_camisa_amarelo[i].first.x - robotSize) >= 0)
+                xmin = center_camisa_amarelo[i].first.x - robotSize;
+            else
+                xmin = 0;
+
+            if((center_camisa_amarelo[i].first.x + robotSize) < input_aux.cols)
+                xsup = center_camisa_amarelo[i].first.x + robotSize;
+            else
+                xsup = input_aux.cols - 1;
+
+            if((center_camisa_amarelo[i].first.y - robotSize) >= 0)
+                ymin = center_camisa_amarelo[i].first.y - robotSize;
+            else
+                ymin = 0;
+
+            if((center_camisa_amarelo[i].first.y + robotSize) < input_aux.rows)
+                ysup = center_camisa_amarelo[i].first.y + robotSize;
+            else
+                ysup = input_aux.rows - 1;
+
+            for(int j = ymin;j < ysup;j++)
+                for(int k = xmin;k < xsup;k++)
+                     input_aux.at<Vec3b>(j,k) = input.at<Vec3b>(j,k);
+        }
+    }
+
+    start = clock();
+    centers_id_camisa[1] = verde_group->Grouping_Result(binary_img_verde);
+    end = clock();
+    aux = pow(10,3)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Grouping 2: " << aux << "ms; ";
+    fprintf(arquivo, "%f ", aux);
+
     // RETORNO DOS CENTROS E QUANTIDADE DE PIXEL VINCULADO A CADA CENTRO ... FEITO PELO AGRUPAMENTO
     // O RETORNO É UM VETOR DE PARES ONDE ... "vetor[i].first é o ponto do centro e vetor[i].second é a quantidade de contorno ou pixel vinculado a aquele centro"
 
     // POS PROCESSAMENTO PARA FORMACAO DE ROBOS...USO DO CASAMENTO...
-    vector<Point>adversario;
-    if(time == 0){
-          Machine_of_Robots->Get_Centers(center_camisa_azul,centers_id_camisa,center_camisa_amarelo);
-
-          for(int i=0;i<center_camisa_amarelo.size();i++)
-          {
+    start = clock();
+    vector<Point>  adversario;
+    if(time == 0)
+    {
+        Machine_of_Robots->Get_Centers(center_camisa_azul,centers_id_camisa,center_camisa_amarelo);
+        for(int i = 0; i < center_camisa_amarelo.size();i++)
             adversario.push_back(center_camisa_amarelo[i].first);
-          }
+    }
+    else
+    {
+        Machine_of_Robots->Get_Centers(center_camisa_amarelo,centers_id_camisa,center_camisa_azul);
+        for(int i = 0; i < center_camisa_azul.size();i++)
+            adversario.push_back(center_camisa_azul[i].first);
+    }
 
-        }
-        else
-          {
-            Machine_of_Robots->Get_Centers(center_camisa_amarelo,centers_id_camisa,center_camisa_azul);
-
-            for(int i=0;i<center_camisa_azul.size();i++)
-            {
-              adversario.push_back(center_camisa_azul[i].first);
-            }
-          }
+    end = clock();
+    aux = pow(10,6)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Casamento: " << aux << "us; ";
+    fprintf(arquivo, "%f ", aux);
 
     // RETORNO DOS ROBOS JA FORMADOS
     robos = Machine_of_Robots->Get_robos();
 
+    robos[0].zonamorta_direita_positiva  = con->robo[con->atual1].rb_zonamorta_d_pos;
+    robos[0].zonamorta_esquerda_positiva = con->robo[con->atual1].rb_zonamorta_e_pos;
 
-    robos[0].zonamorta_d = con->zona_morta_rb1[0];
-    robos[0].zonamorta_e = con->zona_morta_rb1[1];
+    robos[0].zonamorta_direita_negativa  = con->robo[con->atual1].rb_zonamorta_d_neg;
+    robos[0].zonamorta_esquerda_negativa = con->robo[con->atual1].rb_zonamorta_e_neg;
 
-    robos[1].zonamorta_d = con->zona_morta_rb2[0];
-    robos[1].zonamorta_e = con->zona_morta_rb2[1];
+    robos[1].zonamorta_direita_positiva  = con->robo[con->atual2].rb_zonamorta_d_pos;
+    robos[1].zonamorta_esquerda_positiva = con->robo[con->atual2].rb_zonamorta_e_pos;
 
-    robos[2].zonamorta_d = con->zona_morta_rb3[0];
-    robos[2].zonamorta_e = con->zona_morta_rb3[1];
+    robos[1].zonamorta_direita_negativa  = con->robo[con->atual2].rb_zonamorta_d_neg;
+    robos[1].zonamorta_esquerda_negativa = con->robo[con->atual2].rb_zonamorta_e_neg;
 
-    robos[0].V_max = con->constantes_rb1[0];
-    robos[0].k_lin = con->constantes_rb1[1];
-    robos[0].W_max = con->constantes_rb1[2];
-    robos[0].k_ang = con->constantes_rb1[3];
+    robos[2].zonamorta_direita_positiva  = con->robo[con->atual3].rb_zonamorta_d_pos;
+    robos[2].zonamorta_esquerda_positiva = con->robo[con->atual3].rb_zonamorta_e_pos;
 
-    robos[1].V_max = con->constantes_rb2[0];
-    robos[1].k_lin = con->constantes_rb2[1];
-    robos[1].W_max = con->constantes_rb2[2];
-    robos[1].k_ang = con->constantes_rb2[3];
+    robos[2].zonamorta_direita_negativa  = con->robo[con->atual3].rb_zonamorta_d_neg;
+    robos[2].zonamorta_esquerda_negativa = con->robo[con->atual3].rb_zonamorta_e_neg;
 
-    robos[2].V_max = con->constantes_rb3[0];
-    robos[2].k_lin = con->constantes_rb3[1];
-    robos[2].W_max = con->constantes_rb3[2];
-    robos[2].k_ang = con->constantes_rb3[3];
+    Cerebro->vm1 = robos[0].V_max;
+    robos[0].V_max = con->robo[con->atual1].V_max;
+    robos[0].k_lin = con->robo[con->atual1].k_lin;
+    robos[0].W_max = con->robo[con->atual1].W_max;
+    robos[0].k_ang = con->robo[con->atual1].k_ang;
+    robos[0].ic_dn = con->robo[con->atual1].ic_dn;
+    robos[0].ic_dp = con->robo[con->atual1].ic_dp;
+    robos[0].ic_en = con->robo[con->atual1].ic_en;
+    robos[0].ic_ep = con->robo[con->atual1].ic_ep;
+    robos[0].rb_VRd_max_neg = con->robo[con->atual1].rb_VRd_max_neg;
+    robos[0].rb_VRd_max_pos = con->robo[con->atual1].rb_VRd_max_pos;
+    robos[0].rb_VRe_max_neg = con->robo[con->atual1].rb_VRe_max_neg;
+    robos[0].rb_VRe_max_pos = con->robo[con->atual1].rb_VRe_max_pos;
 
+    Cerebro->vm2 = robos[1].V_max;
+    robos[1].V_max = con->robo[con->atual2].V_max;
+    robos[1].k_lin = con->robo[con->atual2].k_lin;
+    robos[1].W_max = con->robo[con->atual2].W_max;
+    robos[1].k_ang = con->robo[con->atual2].k_ang;
+    robos[1].ic_dn = con->robo[con->atual2].ic_dn;
+    robos[1].ic_dp = con->robo[con->atual2].ic_dp;
+    robos[1].ic_en = con->robo[con->atual2].ic_en;
+    robos[1].ic_ep = con->robo[con->atual2].ic_ep;
+    robos[1].rb_VRd_max_neg = con->robo[con->atual2].rb_VRd_max_neg;
+    robos[1].rb_VRd_max_pos = con->robo[con->atual2].rb_VRd_max_pos;
+    robos[1].rb_VRe_max_neg = con->robo[con->atual2].rb_VRe_max_neg;
+    robos[1].rb_VRe_max_pos = con->robo[con->atual2].rb_VRe_max_pos;
+
+    Cerebro->vm3 = robos[2].V_max;
+    robos[2].V_max = con->robo[con->atual3].V_max;
+    robos[2].k_lin = con->robo[con->atual3].k_lin;
+    robos[2].W_max = con->robo[con->atual3].W_max;
+    robos[2].k_ang = con->robo[con->atual3].k_ang;
+    robos[2].ic_dn = con->robo[con->atual3].ic_dn;
+    robos[2].ic_dp = con->robo[con->atual3].ic_dp;
+    robos[2].ic_en = con->robo[con->atual3].ic_en;
+    robos[2].ic_ep = con->robo[con->atual3].ic_ep;
+    robos[2].rb_VRd_max_neg = con->robo[con->atual3].rb_VRd_max_neg;
+    robos[2].rb_VRd_max_pos = con->robo[con->atual3].rb_VRd_max_pos;
+    robos[2].rb_VRe_max_neg = con->robo[con->atual3].rb_VRe_max_neg;
+    robos[2].rb_VRe_max_pos = con->robo[con->atual3].rb_VRe_max_pos;
+
+    if(contador > 2)
+    {
+        robos[0].vrd_p = Cerebro->robos[0].vrd_p;
+        robos[0].vre_p = Cerebro->robos[0].vre_p;
+        robos[1].vrd_p = Cerebro->robos[1].vrd_p;
+        robos[1].vre_p = Cerebro->robos[1].vre_p;
+        robos[2].vrd_p = Cerebro->robos[2].vrd_p;
+        robos[2].vre_p = Cerebro->robos[2].vre_p;
+    }
+
+    start = clock();
     circle(input,robos[0].get_center_robot(),15, Scalar(0,255,255),1,5,0);
     circle(input,robos[1].get_center_robot(),15, Scalar(0,255,255),1,5,0);
     circle(input,robos[2].get_center_robot(),15, Scalar(0,255,255),1,5,0);
     circle(input,Point(Bola.x,Bola.y),6, Scalar(0,255,255),1,5,0);
+    arrowedLine(input,Point(Bola.x,Bola.y),Bola.pred[0],Scalar(255,255,255),1,8,0,0.5);
+    arrowedLine(input,Point(Bola.x,Bola.y),Bola.pred[1],Scalar(255,0,255),1,8,0,0.5);
+    arrowedLine(input,Point(Bola.x,Bola.y),Bola.pred[2],Scalar(0,255,255),1,8,0,0.5);
 
     line(input,Machine_of_Robots->rb1_linha[0],Machine_of_Robots->rb1_linha[1],Scalar(0,255,255),1);
     line(input,Machine_of_Robots->rb2_linha[0],Machine_of_Robots->rb2_linha[1],Scalar(0,255,255),1);
     line(input,Machine_of_Robots->rb3_linha[0],Machine_of_Robots->rb3_linha[1],Scalar(0,255,255),1);
 
-*/
     cvtColor(input, input, COLOR_BGR2RGB,3);
 
-
     image = QImage((uchar*) input.data, input.cols, input.rows,input.step, QImage::Format_RGB888);
-
     if(image.width() > 0 && image.height() > 0)
     {
         ui->janela->setFixedWidth(image.width());
         ui->janela->setFixedHeight(image.height());
     }
 
-
     ui->janela->setPixmap(QPixmap::fromImage(image));
 
+    end = clock();
+    aux = pow(10,3)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Plot: " << aux << "ms; ";
+    fprintf(arquivo, "%f ", aux);
 
-    auto end=chrono::steady_clock::now();
+    Cerebro->vet1 = Machine_of_Robots->rb2_linha[1];
 
+    start = clock();
     // ESTRATÉGIA
-  /*   pos_bola[0] = pos_bola[1];
-     pos_bola[1] = Point(Bola.x,Bola.y);
+    pos_bola[0] = pos_bola[1];
+    pos_bola[1] = Point(Bola.x,Bola.y);
 
-      Cerebro->Setar_Variaveis_jogo(robos,Bola,adversario);
+    Cerebro->Setar_Variaveis_jogo(robos,Bola,adversario);
 
-      Cerebro->Setar_Atacante(comando_atacante);
-      Cerebro->Setar_Goleiro(comando_goleiro);
-      Cerebro->Setar_Zagueiro(comando_zagueiro);
+    Cerebro->Setar_Atacante(comando_atacante);
+    Cerebro->Setar_Goleiro(comando_goleiro);
+    Cerebro->Setar_Zagueiro(comando_zagueiro);
 
-      Cerebro->Executar_estrategia(comando);
+    Cerebro->Executar_estrategia(comando);
 
     if(comando == -2)
-        parar(robos);*/
+        Cerebro->robos = parar(robos);
 
-   // estrategia2(robos, Bola);
+    end = clock();
+    aux = pow(10,6)*(end-start)/CLOCKS_PER_SEC;
+    cout << "Estratégia: " << aux << "us; ";
+    cout << endl;
+    fprintf(arquivo, "%f\n", aux);
 
     contador++;
-/*
-    delete binary_img_azul;
-    delete binary_img_amarelo;
-    delete binary_img_verde;
-    delete binary_img_vermelho;
-    delete binary_img_magenta;
-    delete binary_img_laranja;
 
     binary_img_azul = 0;
     binary_img_amarelo = 0;
     binary_img_verde = 0;
     binary_img_vermelho = 0;
     binary_img_magenta = 0;
-    binary_img_laranja = 0;*/
+    binary_img_laranja = 0;
 
+    /*end = clock();
+    double aux = 1000*(end-start)/CLOCKS_PER_SEC;
+    QString tempo = QString::number(aux);
+    ui->milesegundos->setText(tempo);*/
+}
 
-    cout << "Elapsed time in microseconds : "<< chrono::duration_cast<chrono::microseconds>(end - start).count()<< " us" << endl;
+void MainWindow::calibration()
+{
+    // Verifica aba atual, caso esteja na aba de jogo ele para esse função e parte para a função refresh_robot_position()
+    if(ui->tabWidget->currentIndex() == 0)
+    {
+        cronometro->blockSignals(false);
+        cronometro2->blockSignals(true);
+    }
 
-//    QString tempo = QString::number(aux);
-//    ui->milesegundos->setText(tempo);
+    // Ler frame da razer ou webcam qualquer
+    if(razer)
+    {
+        frames = p.wait_for_frames();
+        color = frames.get_color_frame();
+
+        // Query frame size (width and height)
+        const int w = color.as<rs2::video_frame>().get_width();
+        const int h = color.as<rs2::video_frame>().get_height();
+
+        // Create OpenCV matrix of size (w,h) from the colorized depth data
+        Mat image(Size(w, h), CV_8UC3, (void*)color.get_data(), Mat::AUTO_STEP);
+        input = image;
+    }
+    else
+    {
+        if(!cap.isOpened())
+            QMessageBox::warning(this, tr("Error"), "Câmera não conectada", QMessageBox::Close);
+
+        if(!cap.read(input))
+        {
+            QMessageBox::warning(this, tr("Error"), "Frame não pode ser aberto", QMessageBox::Close);
+            this->close();
+        }
+    }
+
+    if(ui->checkBox_flip->isChecked())
+        flip(input,input,1);
+
+    if(roi.area() > 0 && roi.width+roi.x < input.cols && roi.height+roi.y < input.rows)
+        input = input(roi);
+
+    // Decide se a imagem exibida é a imagem original ou com a limiarização
+    if(ui->checkBox_limiar->isChecked())
+    {
+        Mat *binary_image;
+        binary_image = select_Limiar2Segment(input);
+        image = QImage((uchar*) binary_image->data, binary_image->cols, binary_image->rows,binary_image->step, QImage::Format_Grayscale8);
+        //binary_image->release();
+    }
+    else
+    {
+        cvtColor(input, input, COLOR_BGR2RGB,3);
+        image = QImage((uchar*) input.data, input.cols, input.rows,input.step, QImage::Format_RGB888);
+    }
+
+    if(ui->checkBox_linha_principais->isChecked())
+        plotar_principais();
+
+    if(ui->checkBox_linha_secundaria->isChecked())
+        plotar_secundarias();
+
+    if(image.width() > 0 && image.height() > 0)
+    {
+        ui->janela_2->setMinimumHeight(image.height());
+        ui->janela_2->setMinimumWidth(image.width());
+        //cout << image.height() << " " << image.width() << endl;
+        //ui->janela_2->setFixedWidth(image.width());
+        //ui->janela_2->setFixedHeight(image.height());
+    }
+    else
+        cout << "out" << endl;
+
+    if(ui->checkBox_help_lines->isChecked())
+    {
+        switch(cont_help/40)
+        {
+            case 0:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/FG1.PNG");
+                break;
+            case 1:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/FG2.PNG");
+                break;
+            case 2:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/AL1.PNG");
+                break;
+            case 3:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/AL2.PNG");
+                break;
+            case 4:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/AL3.PNG");
+                break;
+            default:
+                input = imread("/home/gprufs/Documentos/Futebol 2020 - Filpinho/CABOCLINHOS OFICIAL - 2020/FG1.PNG");
+                cont_help = 0;
+                break;
+        }
+
+        image = QImage((uchar*) input.data, input.cols, input.rows,input.step, QImage::Format_RGB888);
+        cont_help++;
+        cout << "Contador: " << cont_help << endl;
+    }
+
+    ui->janela_2->setPixmap(QPixmap::fromImage(image));
+
+    end = clock();
+    double aux = 1000*(end-start)/CLOCKS_PER_SEC;
+    out << aux << endl;
+    QString tempo = QString::number(aux);
+    ui->milesegundos->setText(tempo);
+    start = clock();
 }
 
 MainWindow::~MainWindow()
 {
     cap.release();
     /////////////////////////////////// comunicação serial ///////////////////////////////
-        encerra_comunicacao_serial();
+    encerra_comunicacao_serial();
     /////////////////////////////////// comunicação serial ///////////////////////////////
 
-        set->WriteConfigurationsRobots(con->constantes_rb1,con->constantes_rb2,con->constantes_rb3,con->zona_morta_rb1,con->zona_morta_rb2,con->zona_morta_rb3,"Constantes.xml");
-        delete azul;
-        delete amarelo;
-        delete vermelho;
-        delete verde;
-        delete magenta;
-        delete laranja;
+    fclose(arquivo);
+    vector<int> mascara;
+    mascara.push_back(ui->comboBox_tipomask->currentIndex());
+    mascara.push_back(ui->spinBox_abertura->value());
+    mascara.push_back(ui->spinBox_fechamento->value());
+    String fileSettings = "Settings.xml";
+    set->WriteSettings(mascara,Blue,Yellow,Green,Orange,roi,fileSettings);
+    //set->WriteConfigurationsRobots(con->constantes_rb1,con->constantes_rb2,con->constantes_rb3,con->zona_morta_rb1,con->zona_morta_rb2,con->zona_morta_rb3,"Constantes.xml");
+    delete azul;
+    delete amarelo;
+    delete vermelho;
+    delete verde;
+    delete magenta;
+    delete laranja;
 
-        delete azul_group;
-        delete amarelo_group;
-        delete verde_group;
-        delete vermelho_group;
-        delete magenta_group;
-        delete laranja_group;
+    delete azul_group;
+    delete amarelo_group;
+    delete verde_group;
+    delete vermelho_group;
+    delete magenta_group;
+    delete laranja_group;
 
-        delete Machine_of_Robots;
+    delete Machine_of_Robots;
 
-        delete set;
-        delete con;
-        delete cronometro;
+    delete set;
+    delete con;
+    delete cronometro;
+    delete cronometro2;
 
-        input.release();
+    input.release();
 
-
+    out.close();
 
     delete ui;
 }
@@ -354,9 +724,6 @@ void MainWindow::on_actionKmeans_triggered()
 {
     con->show();
 }
-
-
-
 
 void MainWindow::on_select_azul_triggered()
 {
@@ -390,12 +757,13 @@ void MainWindow::on_pushButton_clicked()
 
     if(ui->combo_zagueiro->currentIndex()!= -1)
         comando_zagueiro = ui->combo_zagueiro->currentIndex();
-
 }
 
 void MainWindow::on_pushButton_2_clicked()
 {
     comando = -2;
+
+    cout << "Parou"<< endl;
 }
 
 void MainWindow::on_comboBox_currentIndexChanged(int index)
@@ -427,12 +795,12 @@ void MainWindow::on_actionAbrir_Settings_triggered()
         set->GetThresholdColor(Mg,"Magenta");
         set->GetThresholdColor(Green,"Green");
 
-        azul= new Segmentation(Blue[0], Blue[1],Mascaras);
-        vermelho = new Segmentation(Red[0], Red[1],Mascaras);
-        amarelo = new Segmentation(Yellow[0], Yellow[1],Mascaras);
-        laranja = new Segmentation(Orange[0], Orange[1],Mascaras);
-        magenta = new Segmentation(Mg[0],Mg[1],Mascaras);
-        verde = new Segmentation(Green[0],Green[1],Mascaras);
+        azul= new Segmentation(Mascaras);
+        vermelho = new Segmentation(Mascaras);
+        amarelo = new Segmentation(Mascaras);
+        laranja = new Segmentation(Mascaras);
+        magenta = new Segmentation(Mascaras);
+        verde = new Segmentation(Mascaras);
 
         azul_group = new Grouping(3,0);
         amarelo_group = new Grouping(3,0);
@@ -447,6 +815,534 @@ void MainWindow::on_actionAbrir_Settings_triggered()
 
         Cerebro = new Strategy();
         Cerebro->Setar_Campo(set);
-
     }
+}
+
+void MainWindow::on_select_RGB_triggered()
+{
+    ui->select_RGB->setChecked(true);
+    ui->select_New_RGB->setChecked(false);
+    ui->select_HSV->setChecked(false);
+    Color_Space = RGB;
+}
+
+void MainWindow::on_select_New_RGB_triggered()
+{
+    ui->select_RGB->setChecked(false);
+    ui->select_New_RGB->setChecked(true);
+    ui->select_HSV->setChecked(false);
+    Color_Space = NEW_RGB;
+}
+
+void MainWindow::on_select_HSV_triggered(bool checked)
+{
+
+}
+
+void MainWindow::on_select_HSV_triggered()
+{
+    ui->select_RGB->setChecked(false);
+    ui->select_New_RGB->setChecked(false);
+    ui->select_HSV->setChecked(true);
+    Color_Space = HSV;
+}
+
+void MainWindow::on_contraste_valueChanged(int value)
+{
+    if(razer)
+        set->set_contraste(color_sensor,value);
+    else
+        set->set_contraste(cap,value);
+}
+
+void MainWindow::on_saturacao_valueChanged(int value)
+{
+    if(razer)
+        set->set_saturacao(color_sensor,value);
+    else
+        set->set_saturacao(cap,value);
+}
+
+void MainWindow::on_brilho_valueChanged(int value)
+{
+    if(razer)
+        set->set_brilho(color_sensor,value);
+    else
+        set->set_brilho(cap,value);
+}
+
+void MainWindow::on_exposicao_valueChanged(int value)
+{
+    if(razer)
+        set->set_exposure(color_sensor,value);
+    else
+        set->set_exposure(cap,value);
+    ui->checkBox_expo_auto->setChecked(false);
+}
+
+void MainWindow::on_Resolucao_currentIndexChanged(int index)
+{
+    if(razer)
+         p.stop();
+    switch(index)
+    {
+        case 0:
+            if(razer)
+                set->set_resolution(cfg,640,360,0);
+            else
+                set->set_resolution(cap,640,480,0);
+            break;
+        case 1:
+            if(razer)
+                set->set_resolution(cfg,848,480,1);
+            else
+                set->set_resolution(cap,800,600,1);
+            break;
+        case 2:
+            if(razer)
+                set->set_resolution(cfg,960,540,2);
+            else
+                set->set_resolution(cap,1024,768,2);
+            break;
+        case 3:
+            if(razer)
+                set->set_resolution(cfg,1280,720,3);
+            else
+                set->set_resolution(cap,1280,720,3);
+            break;
+        case 4:
+            if(razer)
+                set->set_resolution(cfg,1920,1080,4);
+            else
+                set->set_resolution(cap,1920,1080,4);
+            break;
+    }
+    ui->janela_2->resize(set->width,set->heigth);
+    if(razer)
+        p.start(cfg);
+}
+
+void MainWindow::on_hue_valueChanged(int value)
+{
+    if(razer)
+        set->set_hue(color_sensor,value);
+}
+
+void MainWindow::on_white_balance_valueChanged(int value)
+{
+    if(razer)
+        set->set_whiteBalance(color_sensor,value);
+    ui->checkBox_wb_auto->setChecked(false);
+}
+
+void MainWindow::on_Gamma_valueChanged(int value)
+{
+    if(razer)
+        set->set_gamma(color_sensor,value);
+}
+
+void MainWindow::on_Gain_valueChanged(int value)
+{
+    if(razer)
+        set->set_gain(color_sensor,value);
+}
+
+void MainWindow::on_Back_Compensation_valueChanged(int value)
+{
+    if(razer)
+        set->set_backlight_compensation(color_sensor,value);
+}
+
+void MainWindow::on_nitidez_valueChanged(int value)
+{
+    if(razer)
+        set->set_nitidez(color_sensor,value);
+}
+
+Mat *MainWindow::select_Limiar2Segment(Mat input)
+{
+    if(ui->comboBox_colors->currentIndex() == 0)
+        return azul->Segmentation_Result(&input);
+    else if(ui->comboBox_colors->currentIndex() == 1)
+        return amarelo->Segmentation_Result(&input);
+    else if(ui->comboBox_colors->currentIndex() == 2)
+        return verde->Segmentation_Result(&input);
+    else
+        return laranja->Segmentation_Result(&input);
+}
+
+void MainWindow::change_limiares(int value, int row, int col)
+{
+    if(ui->comboBox_colors->currentIndex() == 0)
+    {
+        Blue[row][col] = value;
+        azul->Get_Limiar_RGB(Blue[0],Blue[1]);
+    }
+    else if(ui->comboBox_colors->currentIndex() == 1)
+    {
+        Yellow[row][col] = value;
+        amarelo->Get_Limiar_RGB(Yellow[0],Yellow[1]);
+    }
+    else if(ui->comboBox_colors->currentIndex() == 2)
+    {
+        Green[row][col] = value;
+        verde->Get_Limiar_RGB(Green[0],Green[1]);
+    }
+    else if(ui->comboBox_colors->currentIndex() == 3)
+    {
+        Orange[row][col] = value;
+        laranja->Get_Limiar_RGB(Orange[0],Orange[1]);
+    }
+}
+
+void MainWindow::on_bmin_valueChanged(int value)
+{
+    change_limiares(value,0,0);
+}
+
+void MainWindow::on_gmin_valueChanged(int value)
+{
+    change_limiares(value,0,1);
+}
+
+void MainWindow::on_rmin_valueChanged(int value)
+{
+    change_limiares(value,0,2);
+}
+
+void MainWindow::on_bmax_valueChanged(int value)
+{
+    change_limiares(value,1,0);
+}
+
+void MainWindow::on_gmax_valueChanged(int value)
+{
+    change_limiares(value,1,1);
+}
+
+void MainWindow::on_rmax_valueChanged(int value)
+{
+    change_limiares(value,1,2);
+}
+
+void MainWindow::on_comboBox_colors_currentIndexChanged(int index)
+{
+    if(index == 0)
+    {
+        ui->bmin->setValue(Blue[0][0]);
+        ui->gmin->setValue(Blue[0][1]);
+        ui->rmin->setValue(Blue[0][2]);
+        ui->bmax->setValue(Blue[1][0]);
+        ui->gmax->setValue(Blue[1][1]);
+        ui->rmax->setValue(Blue[1][2]);
+    }
+    else if(index == 1)
+    {
+        ui->bmin->setValue(Yellow[0][0]);
+        ui->gmin->setValue(Yellow[0][1]);
+        ui->rmin->setValue(Yellow[0][2]);
+        ui->bmax->setValue(Yellow[1][0]);
+        ui->gmax->setValue(Yellow[1][1]);
+        ui->rmax->setValue(Yellow[1][2]);
+    }
+    else if(index == 2)
+    {
+        ui->bmin->setValue(Green[0][0]);
+        ui->gmin->setValue(Green[0][1]);
+        ui->rmin->setValue(Green[0][2]);
+        ui->bmax->setValue(Green[1][0]);
+        ui->gmax->setValue(Green[1][1]);
+        ui->rmax->setValue(Green[1][2]);
+    }
+    else if(index == 3)
+    {
+        ui->bmin->setValue(Orange[0][0]);
+        ui->gmin->setValue(Orange[0][1]);
+        ui->rmin->setValue(Orange[0][2]);
+        ui->bmax->setValue(Orange[1][0]);
+        ui->gmax->setValue(Orange[1][1]);
+        ui->rmax->setValue(Orange[1][2]);
+    }
+}
+
+void MainWindow::set_ui_values()
+{
+    // Set Combo Boxes
+    on_comboBox_colors_currentIndexChanged(0);
+    ui->comboBox_tipomask->setCurrentIndex(set->tipo_mask);
+    ui->Resolucao->setCurrentIndex(set->index);
+
+    // Set SpinBoxes
+    ui->spinBox_abertura->setValue(set->abertura);
+    ui->spinBox_fechamento->setValue(set->fechamento);
+    ui->spinBox_cut_x->setValue(roi.x);
+    ui->spinBox_cut_y->setValue(roi.y);
+    ui->spinBox_cut_width->setValue(roi.width);
+    ui->spinBox_cut_height->setValue(roi.height);
+
+    // Set Sliders
+    ui->brilho->setValue(set->brilho);
+    ui->contraste->setValue(set->contraste);
+    ui->Back_Compensation->setValue(set->backlight_compensantion);
+    ui->saturacao->setValue(set->saturacao);
+    ui->hue->setValue(set->hue);
+    ui->nitidez->setValue(set->nitidez);
+    ui->white_balance->setValue(set->whiteBalance);
+    ui->Gain->setValue(set->gain);
+    ui->Gamma->setValue(set->gamma);
+    ui->exposicao->setValue(set->exposure);
+
+    // Set CheckBoxes
+    ui->checkBox_expo_auto->setChecked(set->auto_exposure);
+    on_checkBox_expo_auto_clicked(set->auto_exposure);
+    ui->checkBox_wb_auto->setChecked(set->auto_whiteBalance);
+    on_checkBox_wb_auto_clicked(set->auto_whiteBalance);
+
+    // Set SpinBoxes Campo
+    ui->spinBox_area_boty->setValue(set->area_boty);
+    ui->spinBox_area_left->setValue(set->area_left);
+    ui->spinBox_area_right->setValue(set->area_right);
+    ui->spinBox_area_topy->setValue(set->area_topy);
+    ui->spinBox_fbot->setValue(set->fbot);
+    ui->spinBox_ftop->setValue(set->ftop);
+    ui->spinBox_fleftx->setValue(set->fleftx);
+    ui->spinBox_frightx->setValue(set->frightx);
+    ui->spinBox_gleft->setValue(set->gleft);
+    ui->spinBox_gright->setValue(set->gright);
+    ui->spinBox_lgoleiro->setValue(set->lgoleiro);
+    ui->spinBox_lzagueiro->setValue(set->lzagueiro);
+    ui->spinBox_p_area_b->setValue(set->p_area_b);
+    ui->spinBox_p_area_t->setValue(set->p_area_t);
+}
+
+void MainWindow::on_spinBox_abertura_valueChanged(int arg1)
+{
+    Mat elementOpening = getStructuringElement(ui->comboBox_tipomask->currentIndex(), Size(arg1,arg1), Point(-1, -1));
+    Mat elementClosing = getStructuringElement(ui->comboBox_tipomask->currentIndex(), Size(ui->spinBox_fechamento->value(), ui->spinBox_fechamento->value()), Point(-1, -1));
+    Mascaras[0] = elementOpening;
+    Mascaras[1] = elementClosing;
+    set_mascaras();
+}
+
+void MainWindow::on_spinBox_fechamento_valueChanged(int arg1)
+{
+    Mat elementClosing = getStructuringElement(ui->comboBox_tipomask->currentIndex(), Size(arg1,arg1), Point(-1, -1));
+    Mat elementOpening = getStructuringElement(ui->comboBox_tipomask->currentIndex(), Size(ui->spinBox_abertura->value(), ui->spinBox_abertura->value()), Point(-1, -1));
+    Mascaras[0] = elementOpening;
+    Mascaras[1] = elementClosing;
+    set_mascaras();
+}
+
+void MainWindow::on_comboBox_tipomask_currentIndexChanged(int index)
+{
+    Mat elementOpening = getStructuringElement(index, Size(ui->spinBox_abertura->value(),   ui->spinBox_abertura->value()  ), Point(-1, -1));
+    Mat elementClosing = getStructuringElement(index, Size(ui->spinBox_fechamento->value(), ui->spinBox_fechamento->value()), Point(-1, -1));
+    Mascaras[0] = elementOpening;
+    Mascaras[1] = elementClosing;
+    set_mascaras();
+}
+
+void MainWindow::set_mascaras()
+{
+    azul     = new Segmentation(Mascaras);
+    amarelo  = new Segmentation(Mascaras);
+    laranja  = new Segmentation(Mascaras);
+    verde    = new Segmentation(Mascaras);
+
+    azul->Get_Limiar_RGB(Blue[0],Blue[1]);
+    amarelo->Get_Limiar_RGB(Yellow[0],Yellow[1]);
+    verde->Get_Limiar_RGB(Green[0],Green[1]);
+    laranja->Get_Limiar_RGB(Orange[0],Orange[1]);
+}
+
+void MainWindow::on_spinBox_cut_y_valueChanged(int arg1)
+{
+    roi.y = arg1;
+}
+
+void MainWindow::on_spinBox_cut_x_valueChanged(int arg1)
+{
+    roi.x = arg1;
+}
+
+void MainWindow::on_spinBox_cut_width_valueChanged(int arg1)
+{
+    roi.width = arg1;
+}
+
+void MainWindow::on_spinBox_cut_height_valueChanged(int arg1)
+{
+    roi.height = arg1;
+}
+
+void MainWindow::on_checkBox_expo_auto_clicked(bool checked)
+{
+    if(razer)
+        set->set_auto_exposure(color_sensor,checked);
+}
+
+void MainWindow::on_checkBox_wb_auto_clicked(bool checked)
+{
+    if(razer)
+        set->set_auto_whiteBalance(color_sensor,checked);
+}
+
+void MainWindow::on_pushButton_linhas_campo_clicked()
+{
+    set->fbot = input.rows * 0.0185;
+    ui->spinBox_fbot->setValue(set->fbot);
+    set->ftop = input.rows * 0.9815;
+    ui->spinBox_ftop->setValue(set->ftop);
+    set->gboty = input.rows * 0.352;
+    ui->spinBox_gboty->setValue(set->gboty);
+    set->gtopy = input.rows * 0.648;
+    ui->spinBox_gtopy->setValue(set->gtopy);
+
+    set->gleft = input.cols * 0.014;
+    ui->spinBox_gleft->setValue(set->gleft);
+    set->gright = input.cols * 0.986;
+    ui->spinBox_gright->setValue(set->gright);
+    set->fleftx = input.cols * 0.072;
+    ui->spinBox_fleftx->setValue(set->fleftx);
+    set->frightx = input.cols * 0.928;
+    ui->spinBox_frightx->setValue(set->frightx);
+
+    set->area_left = input.cols * 0.157;
+    ui->spinBox_area_left->setValue(set->area_left);
+    set->area_right = input.cols * 0.843;
+    ui->spinBox_area_right->setValue(set->area_right);
+    set->area_boty = input.rows * 0.186;
+    ui->spinBox_area_boty->setValue(set->area_boty);
+    set->area_topy = input.rows * 0.814;
+    ui->spinBox_area_topy->setValue(set->area_topy);
+
+    set->lgoleiro = input.cols * 0.088;
+    ui->spinBox_lgoleiro->setValue(set->lgoleiro);
+    set->lzagueiro = input.cols * 0.286;
+    ui->spinBox_lzagueiro->setValue(set->lzagueiro);
+
+    set->p_area_b = input.rows * 0.426;
+    ui->spinBox_p_area_b->setValue(set->p_area_b);
+    set->p_area_t = input.rows * 0.574;
+    ui->spinBox_p_area_t->setValue(set->p_area_t);
+}
+
+void MainWindow::plotar_principais()
+{
+    line(input,Point(0,set->ftop)   ,Point(input.cols,set->ftop)   ,Scalar(0,255,0));
+    line(input,Point(0,set->fbot)   ,Point(input.cols,set->fbot)   ,Scalar(0,255,0));
+    line(input,Point(0,set->gtopy)  ,Point(input.cols,set->gtopy)  ,Scalar(0,255,0));
+    line(input,Point(0,set->gboty)  ,Point(input.cols,set->gboty)  ,Scalar(0,255,0));
+    line(input,Point(set->fleftx,0) ,Point(set->fleftx,input.rows) ,Scalar(0,255,0));
+    line(input,Point(set->frightx,0),Point(set->frightx,input.rows),Scalar(0,255,0));
+    line(input,Point(set->gleft,0)  ,Point(set->gleft,input.rows)  ,Scalar(0,255,0));
+    line(input,Point(set->gright,0) ,Point(set->gright,input.rows) ,Scalar(0,255,0));
+}
+
+void MainWindow::plotar_secundarias()
+{
+    line(input,Point(0,set->area_boty)  ,Point(input.cols,set->area_boty)  ,Scalar(0,0,255));
+    line(input,Point(0,set->area_topy)  ,Point(input.cols,set->area_topy)  ,Scalar(0,0,255));
+    line(input,Point(0,set->p_area_b),Point(input.cols,set->p_area_b),Scalar(0,0,255));
+    line(input,Point(0,set->p_area_t),Point(input.cols,set->p_area_t),Scalar(0,0,255));
+    line(input,Point(set->lgoleiro,0)   ,Point(set->lgoleiro,input.rows)   ,Scalar(255,0,0));
+    line(input,Point(set->lzagueiro,0)  ,Point(set->lzagueiro,input.rows)  ,Scalar(255,0,0));
+    line(input,Point(set->area_left,0)  ,Point(set->area_left,input.rows)  ,Scalar(0,0,255));
+    line(input,Point(set->area_right,0) ,Point(set->area_right,input.rows) ,Scalar(0,0,255));
+}
+
+void MainWindow::on_spinBox_ftop_valueChanged(int arg1)
+{
+    set->ftop = arg1;
+}
+
+void MainWindow::on_spinBox_fbot_valueChanged(int arg1)
+{
+    set->fbot = arg1;
+}
+
+void MainWindow::on_spinBox_gtopy_valueChanged(int arg1)
+{
+    set->gtopy = arg1;
+}
+
+void MainWindow::on_spinBox_gboty_valueChanged(int arg1)
+{
+    set->gboty = arg1;
+}
+
+void MainWindow::on_spinBox_fleftx_valueChanged(int arg1)
+{
+    set->fleftx = arg1;
+}
+
+void MainWindow::on_spinBox_frightx_valueChanged(int arg1)
+{
+    set->frightx = arg1;
+}
+
+void MainWindow::on_spinBox_gleft_valueChanged(int arg1)
+{
+    set->gleft = arg1;
+}
+
+void MainWindow::on_spinBox_gright_valueChanged(int arg1)
+{
+    set->gright = arg1;
+}
+
+void MainWindow::on_spinBox_area_left_valueChanged(int arg1)
+{
+    set->area_left = arg1;
+}
+
+void MainWindow::on_spinBox_area_right_valueChanged(int arg1)
+{
+    set->area_right = arg1;
+}
+
+void MainWindow::on_spinBox_lzagueiro_valueChanged(int arg1)
+{
+    set->lzagueiro = arg1;
+}
+
+void MainWindow::on_spinBox_lgoleiro_valueChanged(int arg1)
+{
+    set->lgoleiro = arg1;
+}
+
+void MainWindow::on_spinBox_area_topy_valueChanged(int arg1)
+{
+    set->area_topy = arg1;
+}
+
+void MainWindow::on_spinBox_area_boty_valueChanged(int arg1)
+{
+    set->area_boty = arg1;
+}
+
+void MainWindow::on_spinBox_p_area_b_valueChanged(int arg1)
+{
+    set->p_area_b = arg1;
+}
+
+void MainWindow::on_spinBox_p_area_t_valueChanged(int arg1)
+{
+    set->p_area_t = arg1;
+}
+
+void MainWindow::on_pushButton_cortar_clicked()
+{
+   // set->cropper = selectROI(input);  // Em Configurações configurar envio para arquivo xml
+}
+
+void MainWindow::on_checkBox_help_lines_pressed()
+{
+
+}
+
+void MainWindow::on_checkBox_help_lines_clicked(bool checked)
+{
+    if(checked)
+        cont_help = 0;
 }
