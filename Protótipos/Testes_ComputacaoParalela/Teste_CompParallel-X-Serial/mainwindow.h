@@ -7,7 +7,11 @@
 #include <QTimer>
 #include <iostream>
 #include <vector>
-#include "time.h"
+#include <algorithm>
+#include <utility>
+#include <time.h>
+#include <math.h>
+#include <stdlib.h>
 
 //OpenCV
 #include <opencv4/opencv2/opencv.hpp>
@@ -17,6 +21,7 @@
 #include <opencv4/opencv2/imgproc/imgproc.hpp>
 
 #include "omp.h"
+#include "Kmeans.h"
 
 #define Max 1
 #define Min 0
@@ -72,6 +77,13 @@ public:
 
     float temp_paralelo = 0;
     float temp_serial = 0;
+    float temp_kmeans = 0;
+
+    vector<Point>pontos_kmeans;
+    vector<int> qtd_kmeans;
+    int K; //Numero de Clusters;
+    int cont = 0;
+
 
 
 
@@ -82,6 +94,9 @@ private:
     void update_frame_Binary(Mat imagem_Binary);
     void extrair_limiares();
     void segmentacao(Mat Input, Scalar* limiares, Mat* Output);
+    void _kmeans(Mat *Mat_Binary, int K);
+    void _kmeans_Worker();
+
 
 private slots:
     void workSapace();
@@ -101,5 +116,6 @@ private slots:
     void on_SelectColor_currentIndexChanged(int index);
     void on_salve_clicked();
     void on_enable_limiares_stateChanged(int arg1);
+    void on_opencv_clicked();
 };
 #endif // MAINWINDOW_H

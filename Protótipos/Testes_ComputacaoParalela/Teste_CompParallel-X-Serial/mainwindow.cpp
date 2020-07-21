@@ -67,17 +67,98 @@ void MainWindow::extrair_limiares()
 
 void MainWindow::segmentacao(Mat Input, Scalar *limiares, Mat* Output)
 {
-    *Output = Mat(Input.rows,Input.cols, CV_8UC3);
+    *Output = Mat(Input.rows,Input.cols, CV_8U);
 
     inRange(Input, limiares[0], limiares[1], *Output);
 
+    //Output->convertTo(*Output,CV_8U);
+
+    Mat element = getStructuringElement(MORPH_CROSS, Size(5, 5), Point(-1, -1));
+    //Mat elementClosing = getStructuringElement(MORPH_CROSS, Size(2, 2), Point(-1, -1));
+    //morphologyEx(*Output, *Output,MORPH_OPEN, elementOpening);
+    //morphologyEx(*Output, *Output,MORPH_CLOSE, elementClosing);
+    Mat erode_img;
+    erode( *Output, erode_img, element );
+    *Output = *Output - erode_img;
+
 }
 
+void MainWindow::_kmeans(Mat *Mat_Binary, int K)
+{
+
+
+
+    vector<Point> nonZeroCoordinates;
+    //findNonZero(*Mat_Binary, nonZeroCoordinates);
+
+   // cout << nonZeroCoordinates << endl;
+    //cout << (*Mat_Binary).at<Vec3b>(956,577)[0] << endl;;
+    for(int i=0;i<Mat_Binary->cols;i++)
+    {
+        for (int j=0;j<Mat_Binary->rows;j++)
+        {
+            if(Mat_Binary->at<uchar>(i,j) == 255)
+                nonZeroCoordinates.push_back(Point(i,j));
+        }
+    }
+    //cout << nonZeroCoordinates << endl;
+    int tam = nonZeroCoordinates.size();
+
+    vector<_Point> pontos;
+
+    for (int i=0;i<tam;i++)
+    {
+        _Point aux(nonZeroCoordinates[i]);
+        pontos.push_back(aux);
+    }
+
+    __Kmeans__ k_means(K,nonZeroCoordinates.size(),10);
+
+    k_means.run(pontos);
+
+    for(int p = 0; p < K; p++)
+    {
+        circle(*Mat_Binary, k_means.clusters[p].centro.ponto, 4, Scalar(255,255,255),3);
+    }
+
+
+}
+
+void MainWindow::_kmeans_Worker()
+{
+    switch (ui->kmeans->currentIndex())
+    {
+        case 0:
+            break;
+        case 2:
+
+            std::chrono::time_point<std::chrono::system_clock> inicio, fim;
+            inicio = std::chrono::system_clock::now();
+
+            _kmeans(&blue_Mat_binary, 3);
+
+            fim = std::chrono::system_clock::now();
+
+            temp_kmeans += std::chrono::duration_cast<std::chrono::milliseconds>(fim-inicio).count();
+            cont++;
+            if(cont > 1000)
+            {
+                ui->time_2->setText(QString("Time Kmeans: %1 ms").arg(temp_kmeans/(float)cont));
+                temp_kmeans = 0;
+                cont = 0;
+            }
+
+            break;
+    }
+
+}
 
 void MainWindow::workSapace()
 {
 
     extrair_limiares();
+
+    _kmeans_Worker();
 
     if(enable)
     {
@@ -114,32 +195,33 @@ void MainWindow::workSapace()
         inicio = std::chrono::system_clock::now();
 
          segmentacao(image, Blue, &blue_Mat_binary);
-         segmentacao(image, Yellow, &yellow_Mat_binary);
-         segmentacao(image, Orange, &orange_Mat_binary);
-         segmentacao(image, Red, &red_Mat_binary);
+         //segmentacao(image, Yellow, &yellow_Mat_binary);
+         //segmentacao(image, Orange, &orange_Mat_binary);
+         //segmentacao(image, Red, &red_Mat_binary);
 
-       /* #pragma omp parallel sections
-        {
-            #pragma omp section
+            /*#pragma omp parallel sections
             {
-                segmentacao(image, Blue, &blue_Mat_binary);
-            }
+                #pragma omp section
+                {
+                    segmentacao(image, Blue, &blue_Mat_binary);
+                }
 
-            #pragma omp section
-            {
-                segmentacao(image, Yellow, &yellow_Mat_binary);
-            }
+                #pragma omp section
+                {
+                    segmentacao(image, Yellow, &yellow_Mat_binary);
+                }
 
-            #pragma omp section
-            {
-                segmentacao(image, Orange, &orange_Mat_binary);
-            }
-            #pragma omp section
-            {
-                segmentacao(image, Red, &red_Mat_binary);
-            }
+                #pragma omp section
+                {
+                    segmentacao(image, Orange, &orange_Mat_binary);
+                }
+                #pragma omp section
+                {
+                    segmentacao(image, Red, &red_Mat_binary);
+                }
 
-        }*/
+            }*/
+
 
         fim = std::chrono::system_clock::now();
 
@@ -277,3 +359,31 @@ void MainWindow::on_enable_limiares_stateChanged(int arg1)
     enable = arg1;
 }
 
+
+
+
+void MainWindow::on_opencv_clicked()
+{
+    switch (ui->comboBox->currentIndex())
+    {
+        case 0:
+            imshow("Limiar",Limiar);
+            break;
+        case 1:
+            imshow("original",image);
+            break;
+        case 2:
+            imshow("Yellow",yellow_Mat_binary);
+            break;
+        case 3:
+            imshow("Red",red_Mat_binary);
+            break;
+        case 4:
+            imshow("Blue",blue_Mat_binary);
+            break;
+        case 5:
+            imshow("Orange",orange_Mat_binary);
+            break;
+
+    }
+}

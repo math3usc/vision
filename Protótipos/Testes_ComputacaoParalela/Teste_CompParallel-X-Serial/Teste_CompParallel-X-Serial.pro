@@ -29,6 +29,7 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    Kmeans.h \
     mainwindow.h
 
 FORMS += \

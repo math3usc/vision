@@ -268,7 +268,8 @@ DIST          = /home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/features/spec_pre.prf \
 		/home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/features/exceptions.prf \
 		/home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/features/yacc.prf \
 		/home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/features/lex.prf \
-		../Teste_CompParallel-X-Serial/Teste_CompParallel-X-Serial.pro ../Teste_CompParallel-X-Serial/mainwindow.h ../Teste_CompParallel-X-Serial/main.cpp \
+		../Teste_CompParallel-X-Serial/Teste_CompParallel-X-Serial.pro ../Teste_CompParallel-X-Serial/Kmeans.h \
+		../Teste_CompParallel-X-Serial/mainwindow.h ../Teste_CompParallel-X-Serial/main.cpp \
 		../Teste_CompParallel-X-Serial/mainwindow.cpp
 QMAKE_TARGET  = Teste_CompParallel-X-Serial
 DESTDIR       = 
@@ -721,7 +722,7 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents ../Teste_CompParallel-X-Serial/mainwindow.h $(DISTDIR)/
+	$(COPY_FILE) --parents ../Teste_CompParallel-X-Serial/Kmeans.h ../Teste_CompParallel-X-Serial/mainwindow.h $(DISTDIR)/
 	$(COPY_FILE) --parents ../Teste_CompParallel-X-Serial/main.cpp ../Teste_CompParallel-X-Serial/mainwindow.cpp $(DISTDIR)/
 	$(COPY_FILE) --parents ../Teste_CompParallel-X-Serial/mainwindow.ui $(DISTDIR)/
 
@@ -878,6 +879,8 @@ moc_mainwindow.cpp: ../Teste_CompParallel-X-Serial/mainwindow.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/QTimer \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qtimer.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qbasictimer.h \
+		../Teste_CompParallel-X-Serial/Kmeans.h \
+		../Teste_CompParallel-X-Serial/mainwindow.h \
 		moc_predefs.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/bin/moc
 	/home/rodrigo/Qt/5.14.2/gcc_64/bin/moc $(DEFINES) --include '/home/rodrigo/Documentos/Projetos_Programação/Visão -  Futebol De Robôs/vision/Protótipos/Testes_ComputacaoParalela/release/moc_predefs.h' -I/home/rodrigo/Qt/5.14.2/gcc_64/mkspecs/linux-g++ -I'/home/rodrigo/Documentos/Projetos_Programação/Visão -  Futebol De Robôs/vision/Protótipos/Testes_ComputacaoParalela/Teste_CompParallel-X-Serial' -I/usr/local/include/opencv4 -I/home/rodrigo/Qt/5.14.2/gcc_64/include -I/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets -I/home/rodrigo/Qt/5.14.2/gcc_64/include/QtGui -I/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore -I. -I/usr/include/c++/9 -I/usr/include/x86_64-linux-gnu/c++/9 -I/usr/include/c++/9/backward -I/usr/lib/gcc/x86_64-linux-gnu/9/include -I/usr/local/include -I/usr/include/x86_64-linux-gnu -I/usr/include ../Teste_CompParallel-X-Serial/mainwindow.h -o moc_mainwindow.cpp
@@ -1018,6 +1021,7 @@ main.o: ../Teste_CompParallel-X-Serial/main.cpp ../Teste_CompParallel-X-Serial/m
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/QTimer \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qtimer.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qbasictimer.h \
+		../Teste_CompParallel-X-Serial/Kmeans.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QApplication \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qapplication.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qcoreapplication.h \
@@ -1142,51 +1146,8 @@ mainwindow.o: ../Teste_CompParallel-X-Serial/mainwindow.cpp ../Teste_CompParalle
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/QTimer \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qtimer.h \
 		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qbasictimer.h \
-		ui_mainwindow.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/QVariant \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QApplication \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qapplication.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qcoreapplication.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qeventloop.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qdesktopwidget.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtGui/qguiapplication.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtGui/qinputmethod.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QCheckBox \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qcheckbox.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qabstractbutton.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QComboBox \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qcombobox.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qabstractitemdelegate.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qstyleoption.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qabstractspinbox.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtGui/qvalidator.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qregularexpression.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qslider.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qabstractslider.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qstyle.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qtabbar.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qrubberband.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtCore/qabstractitemmodel.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QHBoxLayout \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qboxlayout.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qlayout.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qlayoutitem.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qgridlayout.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QMenuBar \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qmenubar.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qmenu.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qaction.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qactiongroup.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QPushButton \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qpushbutton.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QSlider \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QSpacerItem \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QSpinBox \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qspinbox.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QStatusBar \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/qstatusbar.h \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QTabWidget \
-		/home/rodrigo/Qt/5.14.2/gcc_64/include/QtWidgets/QVBoxLayout
+		../Teste_CompParallel-X-Serial/Kmeans.h \
+		ui_mainwindow.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainwindow.o ../Teste_CompParallel-X-Serial/mainwindow.cpp
 
 moc_mainwindow.o: moc_mainwindow.cpp 

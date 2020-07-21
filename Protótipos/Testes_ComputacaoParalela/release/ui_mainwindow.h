@@ -10,6 +10,7 @@
 #define UI_MAINWINDOW_H
 
 #include <QtCore/QVariant>
+#include <QtGui/QIcon>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
@@ -64,7 +65,7 @@ public:
     QLabel *label_7;
     QSlider *B_max;
     QSpinBox *B_max_2;
-    QWidget *widget;
+    QWidget *layoutWidget1;
     QHBoxLayout *horizontalLayout_12;
     QHBoxLayout *horizontalLayout_10;
     QLabel *label_8;
@@ -73,16 +74,19 @@ public:
     QSpacerItem *horizontalSpacer;
     QHBoxLayout *horizontalLayout_11;
     QLabel *label_9;
-    QPushButton *open_close;
+    QComboBox *kmeans;
     QWidget *tab_2;
-    QWidget *layoutWidget1;
+    QLabel *time;
+    QLabel *time_2;
+    QWidget *widget;
+    QHBoxLayout *horizontalLayout_13;
+    QPushButton *opencv;
     QHBoxLayout *horizontalLayout_9;
     QHBoxLayout *horizontalLayout;
     QLabel *label_2;
     QComboBox *SelectColor;
     QPushButton *salve;
     QPushButton *defalt;
-    QLabel *time;
     QMenuBar *menubar;
     QStatusBar *statusbar;
 
@@ -91,11 +95,14 @@ public:
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
         MainWindow->resize(697, 657);
+        QIcon icon;
+        icon.addFile(QString::fromUtf8("../../../gpr.ico"), QSize(), QIcon::Normal, QIcon::Off);
+        MainWindow->setWindowIcon(icon);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
         frame = new QLabel(centralwidget);
         frame->setObjectName(QString::fromUtf8("frame"));
-        frame->setGeometry(QRect(30, 30, 640, 360));
+        frame->setGeometry(QRect(30, 20, 640, 360));
         frame->setFrameShape(QFrame::Panel);
         frame->setFrameShadow(QFrame::Plain);
         tabWidget = new QTabWidget(centralwidget);
@@ -262,20 +269,20 @@ public:
 
         horizontalLayout_8->addLayout(verticalLayout_3);
 
-        widget = new QWidget(tab);
-        widget->setObjectName(QString::fromUtf8("widget"));
-        widget->setGeometry(QRect(12, 90, 601, 29));
-        horizontalLayout_12 = new QHBoxLayout(widget);
+        layoutWidget1 = new QWidget(tab);
+        layoutWidget1->setObjectName(QString::fromUtf8("layoutWidget1"));
+        layoutWidget1->setGeometry(QRect(10, 90, 601, 29));
+        horizontalLayout_12 = new QHBoxLayout(layoutWidget1);
         horizontalLayout_12->setObjectName(QString::fromUtf8("horizontalLayout_12"));
         horizontalLayout_12->setContentsMargins(0, 0, 0, 0);
         horizontalLayout_10 = new QHBoxLayout();
         horizontalLayout_10->setObjectName(QString::fromUtf8("horizontalLayout_10"));
-        label_8 = new QLabel(widget);
+        label_8 = new QLabel(layoutWidget1);
         label_8->setObjectName(QString::fromUtf8("label_8"));
 
         horizontalLayout_10->addWidget(label_8);
 
-        comboBox = new QComboBox(widget);
+        comboBox = new QComboBox(layoutWidget1);
         comboBox->addItem(QString());
         comboBox->addItem(QString());
         comboBox->addItem(QString());
@@ -286,7 +293,7 @@ public:
 
         horizontalLayout_10->addWidget(comboBox);
 
-        enable_limiares = new QCheckBox(widget);
+        enable_limiares = new QCheckBox(layoutWidget1);
         enable_limiares->setObjectName(QString::fromUtf8("enable_limiares"));
         QFont font;
         font.setPointSize(10);
@@ -297,21 +304,28 @@ public:
 
         horizontalLayout_12->addLayout(horizontalLayout_10);
 
-        horizontalSpacer = new QSpacerItem(78, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        horizontalSpacer = new QSpacerItem(48, 24, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         horizontalLayout_12->addItem(horizontalSpacer);
 
         horizontalLayout_11 = new QHBoxLayout();
         horizontalLayout_11->setObjectName(QString::fromUtf8("horizontalLayout_11"));
-        label_9 = new QLabel(widget);
+        label_9 = new QLabel(layoutWidget1);
         label_9->setObjectName(QString::fromUtf8("label_9"));
 
         horizontalLayout_11->addWidget(label_9);
 
-        open_close = new QPushButton(widget);
-        open_close->setObjectName(QString::fromUtf8("open_close"));
+        kmeans = new QComboBox(layoutWidget1);
+        kmeans->addItem(QString());
+        kmeans->addItem(QString());
+        kmeans->addItem(QString());
+        kmeans->addItem(QString());
+        kmeans->addItem(QString());
+        kmeans->addItem(QString());
+        kmeans->setObjectName(QString::fromUtf8("kmeans"));
+        kmeans->setMaximumSize(QSize(16777215, 25));
 
-        horizontalLayout_11->addWidget(open_close);
+        horizontalLayout_11->addWidget(kmeans);
 
 
         horizontalLayout_12->addLayout(horizontalLayout_11);
@@ -320,20 +334,37 @@ public:
         tab_2 = new QWidget();
         tab_2->setObjectName(QString::fromUtf8("tab_2"));
         tabWidget->addTab(tab_2, QString());
-        layoutWidget1 = new QWidget(centralwidget);
-        layoutWidget1->setObjectName(QString::fromUtf8("layoutWidget1"));
-        layoutWidget1->setGeometry(QRect(360, 400, 307, 29));
-        horizontalLayout_9 = new QHBoxLayout(layoutWidget1);
+        time = new QLabel(centralwidget);
+        time->setObjectName(QString::fromUtf8("time"));
+        time->setGeometry(QRect(450, 30, 181, 20));
+        time->setStyleSheet(QString::fromUtf8("color: rgb(243, 243, 243);"));
+        time->setAlignment(Qt::AlignCenter);
+        time_2 = new QLabel(centralwidget);
+        time_2->setObjectName(QString::fromUtf8("time_2"));
+        time_2->setGeometry(QRect(450, 60, 181, 20));
+        time_2->setStyleSheet(QString::fromUtf8("color: rgb(243, 243, 243);"));
+        time_2->setAlignment(Qt::AlignCenter);
+        widget = new QWidget(centralwidget);
+        widget->setObjectName(QString::fromUtf8("widget"));
+        widget->setGeometry(QRect(220, 390, 447, 31));
+        horizontalLayout_13 = new QHBoxLayout(widget);
+        horizontalLayout_13->setObjectName(QString::fromUtf8("horizontalLayout_13"));
+        horizontalLayout_13->setContentsMargins(0, 0, 0, 0);
+        opencv = new QPushButton(widget);
+        opencv->setObjectName(QString::fromUtf8("opencv"));
+
+        horizontalLayout_13->addWidget(opencv);
+
+        horizontalLayout_9 = new QHBoxLayout();
         horizontalLayout_9->setObjectName(QString::fromUtf8("horizontalLayout_9"));
-        horizontalLayout_9->setContentsMargins(0, 0, 0, 0);
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-        label_2 = new QLabel(layoutWidget1);
+        label_2 = new QLabel(widget);
         label_2->setObjectName(QString::fromUtf8("label_2"));
 
         horizontalLayout->addWidget(label_2);
 
-        SelectColor = new QComboBox(layoutWidget1);
+        SelectColor = new QComboBox(widget);
         SelectColor->addItem(QString());
         SelectColor->addItem(QString());
         SelectColor->addItem(QString());
@@ -346,26 +377,26 @@ public:
 
         horizontalLayout_9->addLayout(horizontalLayout);
 
-        salve = new QPushButton(layoutWidget1);
+        salve = new QPushButton(widget);
         salve->setObjectName(QString::fromUtf8("salve"));
 
         horizontalLayout_9->addWidget(salve);
 
-        defalt = new QPushButton(layoutWidget1);
+        defalt = new QPushButton(widget);
         defalt->setObjectName(QString::fromUtf8("defalt"));
 
         horizontalLayout_9->addWidget(defalt);
 
-        time = new QLabel(centralwidget);
-        time->setObjectName(QString::fromUtf8("time"));
-        time->setGeometry(QRect(456, 50, 181, 20));
-        time->setStyleSheet(QString::fromUtf8("color: rgb(243, 243, 243);"));
-        time->setAlignment(Qt::AlignCenter);
+
+        horizontalLayout_13->addLayout(horizontalLayout_9);
+
         MainWindow->setCentralWidget(centralwidget);
         tabWidget->raise();
-        layoutWidget->raise();
+        layoutWidget1->raise();
         frame->raise();
         time->raise();
+        time_2->raise();
+        opencv->raise();
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName(QString::fromUtf8("menubar"));
         menubar->setGeometry(QRect(0, 0, 697, 22));
@@ -384,7 +415,7 @@ public:
 
     void retranslateUi(QMainWindow *MainWindow)
     {
-        MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
+        MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "Teste: Programa\303\247\303\243o Paralela", nullptr));
         frame->setText(QString());
         label->setText(QCoreApplication::translate("MainWindow", "R_min", nullptr));
         label_3->setText(QCoreApplication::translate("MainWindow", "R_max", nullptr));
@@ -401,10 +432,19 @@ public:
         comboBox->setItemText(5, QCoreApplication::translate("MainWindow", "Laranja_binario", nullptr));
 
         enable_limiares->setText(QCoreApplication::translate("MainWindow", "Alterar exibi\303\247\303\243o", nullptr));
-        label_9->setText(QCoreApplication::translate("MainWindow", "Open/Close", nullptr));
-        open_close->setText(QCoreApplication::translate("MainWindow", "Ir", nullptr));
+        label_9->setText(QCoreApplication::translate("MainWindow", "Clustering", nullptr));
+        kmeans->setItemText(0, QCoreApplication::translate("MainWindow", "Disabilitado", nullptr));
+        kmeans->setItemText(1, QCoreApplication::translate("MainWindow", "All", nullptr));
+        kmeans->setItemText(2, QCoreApplication::translate("MainWindow", "Azul", nullptr));
+        kmeans->setItemText(3, QCoreApplication::translate("MainWindow", "Amarelo", nullptr));
+        kmeans->setItemText(4, QCoreApplication::translate("MainWindow", "Vermelho", nullptr));
+        kmeans->setItemText(5, QCoreApplication::translate("MainWindow", "Laranja", nullptr));
+
         tabWidget->setTabText(tabWidget->indexOf(tab), QCoreApplication::translate("MainWindow", "RGB", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QCoreApplication::translate("MainWindow", "HSV", nullptr));
+        time->setText(QString());
+        time_2->setText(QString());
+        opencv->setText(QCoreApplication::translate("MainWindow", "Abrir com openCV", nullptr));
         label_2->setText(QCoreApplication::translate("MainWindow", "Cor:", nullptr));
         SelectColor->setItemText(0, QCoreApplication::translate("MainWindow", "Azul", nullptr));
         SelectColor->setItemText(1, QCoreApplication::translate("MainWindow", "Laranja", nullptr));
@@ -414,7 +454,6 @@ public:
 
         salve->setText(QCoreApplication::translate("MainWindow", "Salvar", nullptr));
         defalt->setText(QCoreApplication::translate("MainWindow", "Defalt", nullptr));
-        time->setText(QString());
     } // retranslateUi
 
 };
