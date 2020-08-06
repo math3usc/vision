@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->frame->setScaledContents(true);
 
     image = imread("image20.png");
+    //update_frame(image);
 
     time = new QTimer(this);
     connect(time,SIGNAL(timeout()),this,SLOT(workSapace()));
@@ -67,7 +68,7 @@ void MainWindow::extrair_limiares()
 
 void MainWindow::segmentacao(Mat Input, Scalar *limiares, Mat* Output)
 {
-    *Output = Mat(Input.rows,Input.cols, CV_8U);
+    *Output = Mat(Input.rows,Input.cols, CV_8UC1);
 
     inRange(Input, limiares[0], limiares[1], *Output);
 
@@ -86,39 +87,31 @@ void MainWindow::segmentacao(Mat Input, Scalar *limiares, Mat* Output)
 void MainWindow::_kmeans(Mat *Mat_Binary, int K)
 {
 
-
-
     vector<Point> nonZeroCoordinates;
-    //findNonZero(*Mat_Binary, nonZeroCoordinates);
+    findNonZero(*Mat_Binary, nonZeroCoordinates);
 
-   // cout << nonZeroCoordinates << endl;
-    //cout << (*Mat_Binary).at<Vec3b>(956,577)[0] << endl;;
-    for(int i=0;i<Mat_Binary->cols;i++)
-    {
-        for (int j=0;j<Mat_Binary->rows;j++)
-        {
-            if(Mat_Binary->at<uchar>(i,j) == 255)
-                nonZeroCoordinates.push_back(Point(i,j));
-        }
-    }
-    //cout << nonZeroCoordinates << endl;
     int tam = nonZeroCoordinates.size();
+    //cout << tam << endl;
 
     vector<_Point> pontos;
 
+    #pragma omp parallel for schedule(static)
     for (int i=0;i<tam;i++)
     {
-        _Point aux(nonZeroCoordinates[i]);
+        _Point aux(i,nonZeroCoordinates[i]);
+
+        #pragma omp critical
         pontos.push_back(aux);
     }
 
-    __Kmeans__ k_means(K,nonZeroCoordinates.size(),10);
+    KMeans k_means(K,tam,10);
 
     k_means.run(pontos);
 
+    #pragma omp parallel for
     for(int p = 0; p < K; p++)
     {
-        circle(*Mat_Binary, k_means.clusters[p].centro.ponto, 4, Scalar(255,255,255),3);
+        circle(*Mat_Binary, k_means.clusters[p].getCentralValue(), 4, Scalar(255,255,255),3);
     }
 
 
@@ -135,15 +128,25 @@ void MainWindow::_kmeans_Worker()
             std::chrono::time_point<std::chrono::system_clock> inicio, fim;
             inicio = std::chrono::system_clock::now();
 
-            _kmeans(&blue_Mat_binary, 3);
+            _kmeans(&blue_Mat_binary,8);
 
             fim = std::chrono::system_clock::now();
 
             temp_kmeans += std::chrono::duration_cast<std::chrono::milliseconds>(fim-inicio).count();
             cont++;
-            if(cont > 1000)
+            if(cont>1000)
             {
                 ui->time_2->setText(QString("Time Kmeans: %1 ms").arg(temp_kmeans/(float)cont));
+                _tempos.push_back(temp_kmeans/(float)cont);
+                cont_2++;
+
+                if(cont_2 > 30)
+                {
+                    for (int i = 0;i<(int)_tempos.size();i++) {
+                        cout << to_string(_tempos[i]) << endl;
+                    }
+                    cont_2 = 0;
+                }
                 temp_kmeans = 0;
                 cont = 0;
             }
@@ -156,7 +159,7 @@ void MainWindow::_kmeans_Worker()
 void MainWindow::workSapace()
 {
 
-    extrair_limiares();
+     extrair_limiares();
 
     _kmeans_Worker();
 
@@ -194,12 +197,12 @@ void MainWindow::workSapace()
     std::chrono::time_point<std::chrono::system_clock> inicio, fim;
         inicio = std::chrono::system_clock::now();
 
-         segmentacao(image, Blue, &blue_Mat_binary);
+         //segmentacao(image, Blue, &blue_Mat_binary);
          //segmentacao(image, Yellow, &yellow_Mat_binary);
          //segmentacao(image, Orange, &orange_Mat_binary);
          //segmentacao(image, Red, &red_Mat_binary);
 
-            /*#pragma omp parallel sections
+            #pragma omp parallel sections
             {
                 #pragma omp section
                 {
@@ -220,13 +223,13 @@ void MainWindow::workSapace()
                     segmentacao(image, Red, &red_Mat_binary);
                 }
 
-            }*/
+            }
 
 
         fim = std::chrono::system_clock::now();
 
         temp_paralelo = std::chrono::duration_cast<std::chrono::milliseconds>(fim-inicio).count();
-        ui->time->setText(QString("Time: %1 ms").arg(temp_paralelo));
+        ui->time->setText(QString("Time Seg.: %1 ms").arg(temp_paralelo));
         temp_paralelo = 0;
 
 
@@ -350,16 +353,13 @@ void MainWindow::on_salve_clicked()
         default:
         break;
     }
-
-
 }
 
 void MainWindow::on_enable_limiares_stateChanged(int arg1)
 {
     enable = arg1;
+
 }
-
-
 
 
 void MainWindow::on_opencv_clicked()

@@ -78,7 +78,7 @@ public:
     QWidget *tab_2;
     QLabel *time;
     QLabel *time_2;
-    QWidget *widget;
+    QWidget *layoutWidget2;
     QHBoxLayout *horizontalLayout_13;
     QPushButton *opencv;
     QHBoxLayout *horizontalLayout_9;
@@ -344,13 +344,13 @@ public:
         time_2->setGeometry(QRect(450, 60, 181, 20));
         time_2->setStyleSheet(QString::fromUtf8("color: rgb(243, 243, 243);"));
         time_2->setAlignment(Qt::AlignCenter);
-        widget = new QWidget(centralwidget);
-        widget->setObjectName(QString::fromUtf8("widget"));
-        widget->setGeometry(QRect(220, 390, 447, 31));
-        horizontalLayout_13 = new QHBoxLayout(widget);
+        layoutWidget2 = new QWidget(centralwidget);
+        layoutWidget2->setObjectName(QString::fromUtf8("layoutWidget2"));
+        layoutWidget2->setGeometry(QRect(220, 390, 447, 31));
+        horizontalLayout_13 = new QHBoxLayout(layoutWidget2);
         horizontalLayout_13->setObjectName(QString::fromUtf8("horizontalLayout_13"));
         horizontalLayout_13->setContentsMargins(0, 0, 0, 0);
-        opencv = new QPushButton(widget);
+        opencv = new QPushButton(layoutWidget2);
         opencv->setObjectName(QString::fromUtf8("opencv"));
 
         horizontalLayout_13->addWidget(opencv);
@@ -359,12 +359,12 @@ public:
         horizontalLayout_9->setObjectName(QString::fromUtf8("horizontalLayout_9"));
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
-        label_2 = new QLabel(widget);
+        label_2 = new QLabel(layoutWidget2);
         label_2->setObjectName(QString::fromUtf8("label_2"));
 
         horizontalLayout->addWidget(label_2);
 
-        SelectColor = new QComboBox(widget);
+        SelectColor = new QComboBox(layoutWidget2);
         SelectColor->addItem(QString());
         SelectColor->addItem(QString());
         SelectColor->addItem(QString());
@@ -377,12 +377,12 @@ public:
 
         horizontalLayout_9->addLayout(horizontalLayout);
 
-        salve = new QPushButton(widget);
+        salve = new QPushButton(layoutWidget2);
         salve->setObjectName(QString::fromUtf8("salve"));
 
         horizontalLayout_9->addWidget(salve);
 
-        defalt = new QPushButton(widget);
+        defalt = new QPushButton(layoutWidget2);
         defalt->setObjectName(QString::fromUtf8("defalt"));
 
         horizontalLayout_9->addWidget(defalt);
@@ -392,11 +392,10 @@ public:
 
         MainWindow->setCentralWidget(centralwidget);
         tabWidget->raise();
-        layoutWidget1->raise();
+        layoutWidget->raise();
         frame->raise();
         time->raise();
         time_2->raise();
-        opencv->raise();
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName(QString::fromUtf8("menubar"));
         menubar->setGeometry(QRect(0, 0, 697, 22));

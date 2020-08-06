@@ -12,6 +12,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string>
 
 //OpenCV
 #include <opencv4/opencv2/opencv.hpp>
@@ -80,9 +81,9 @@ public:
     float temp_kmeans = 0;
 
     vector<Point>pontos_kmeans;
-    vector<int> qtd_kmeans;
-    int K; //Numero de Clusters;
+    vector<float> _tempos;
     int cont = 0;
+    int cont_2 = 0;
 
 
 
